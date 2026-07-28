@@ -128,16 +128,18 @@
   /* ══════════════════ hlavička ══════════════════
      UX: na zdi má hlavička nést jen datum, čas a místo. Ovládací prvky
      se ukazují až když je co řešit – offline stav, zastaralá data. */
+  /* Hlavička i počasí jsou drženy nízko schválně — ušetřená výška padne
+     seznamům, které se čtou nejčastěji. */
   .header {
     border-radius: var(--r-xl);
-    padding: clamp(10px, 1.1vw, 16px) clamp(14px, 1.6vw, 22px);
-    display: flex; align-items: center; gap: clamp(12px, 1.5vw, 20px);
+    padding: clamp(7px, .8vw, 11px) clamp(12px, 1.4vw, 18px);
+    display: flex; align-items: center; gap: clamp(9px, 1.1vw, 15px);
   }
   .brand-mark {
-    width: clamp(38px, 3.6vw, 50px); height: clamp(38px, 3.6vw, 50px);
-    border-radius: var(--r-md);
+    width: clamp(32px, 3vw, 42px); height: clamp(32px, 3vw, 42px);
+    border-radius: 13px;
     display: grid; place-items: center;
-    font-size: clamp(19px, 1.8vw, 25px);
+    font-size: clamp(16px, 1.5vw, 21px);
     color: var(--blue);
     background: linear-gradient(150deg, rgba(103, 212, 255, .22), rgba(37, 136, 255, .16));
     border: 1px solid rgba(103, 212, 255, .2);
@@ -152,11 +154,11 @@
   /* Hlavička je nad pravou polovinou, takže je úzká. Den a datum proto pod
      sebe — na jeden řádek se „Pondělí 27. července“ nevejde a zkracovalo se. */
   .date-day {
-    font-size: clamp(16px, 1.85vw, 26px); font-weight: 700; letter-spacing: -.015em;
+    font-size: clamp(15px, 1.6vw, 22px); font-weight: 700; letter-spacing: -.015em;
     line-height: 1.1; white-space: nowrap;
   }
   .date-rest {
-    font-size: clamp(11px, 1.15vw, 16px); color: var(--muted); line-height: 1.3;
+    font-size: clamp(10px, 1.05vw, 14px); color: var(--muted); line-height: 1.3;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .date-rest .holiday { color: var(--yellow); }
@@ -185,8 +187,8 @@
   .icon-btn:active { background: var(--panel-3); }
 
   .time-box { text-align: right; line-height: 1.05; flex: 0 0 auto; }
-  .time { font-size: clamp(26px, 3.1vw, 44px); font-weight: 300; letter-spacing: -.03em; }
-  .loc { font-size: clamp(10px, 1vw, 14px); color: var(--muted); }
+  .time { font-size: clamp(23px, 2.6vw, 36px); font-weight: 300; letter-spacing: -.03em; }
+  .loc { font-size: clamp(9px, .92vw, 12px); color: var(--muted); }
 
   /* ══════════════════ stránky ══════════════════ */
   .pages { min-height: 0; position: relative; }
@@ -315,10 +317,10 @@
 
   /* ══════════════════ počasí ══════════════════
      Sekce je držená schválně nízko — místo, které ušetří, dostanou seznamy. */
-  .wx-top { display: flex; align-items: center; gap: clamp(9px, 1.1vw, 14px); }
-  .wx-symbol { font-size: clamp(30px, 3.4vw, 46px); line-height: 1; }
-  .wx-temp { font-size: clamp(27px, 3.1vw, 42px); font-weight: 300; line-height: 1; letter-spacing: -.025em; }
-  .wx-desc { font-size: clamp(11px, 1.1vw, 15px); color: var(--muted); margin-top: .15em; }
+  .wx-top { display: flex; align-items: center; gap: clamp(8px, 1vw, 12px); }
+  .wx-symbol { font-size: clamp(26px, 2.9vw, 38px); line-height: 1; }
+  .wx-temp { font-size: clamp(23px, 2.6vw, 35px); font-weight: 300; line-height: 1; letter-spacing: -.025em; }
+  .wx-desc { font-size: clamp(10px, 1.02vw, 14px); color: var(--muted); margin-top: .1em; }
   /* Volné místo mezi teplotou a údaji vpravo nese detaily, které u počasí
      chyběly. `margin: 0 auto` je tu schválně — volný prostor si vezmou jeho
      auto okraje, takže se blok vycentruje a wx-facts zůstane u pravé hrany. */
@@ -376,12 +378,12 @@
     background: var(--panel-2); border: 1px solid var(--line);
     border-radius: 15px; padding: 3px;
   }
-  .sd { text-align: center; padding: clamp(3px, .5vw, 6px) 2px; border-radius: 12px; }
+  .sd { text-align: center; padding: clamp(2px, .35vw, 4px) 2px; border-radius: 11px; }
   .sd.now { background: var(--panel-3); }
   .sd-d { font-size: clamp(8px, .85vw, 11px); color: var(--muted-2); text-transform: lowercase; }
   .strip.days .sd-d { font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .sd-i { font-size: clamp(15px, 1.6vw, 22px); line-height: 1.25; }
-  .sd-t { font-size: clamp(9px, .98vw, 13px); font-weight: 600; }
+  .sd-i { font-size: clamp(13px, 1.4vw, 19px); line-height: 1.2; }
+  .sd-t { font-size: clamp(9px, .94vw, 12px); font-weight: 600; }
   .sd-t .lo { color: var(--muted-2); font-weight: 400; }
   /* bez min-height: když nikde neprší, řádek se sbalí a sekce je nižší */
   .sd-p { font-size: clamp(8px, .82vw, 11px); color: var(--blue); }
@@ -470,6 +472,9 @@
     display: flex; align-items: center; justify-content: center;
     font-size: clamp(10px, 1vw, 13px); color: var(--muted-2); font-weight: 600;
   }
+  .sch-n-head { padding-bottom: 2px; }
+  .sch-row.row-today .sch-c { border-color: rgba(103, 212, 255, .28); }
+  .sch-row.row-today .sch-c.empty { border-color: rgba(103, 212, 255, .16); }
   .sch-c {
     display: flex; align-items: center; justify-content: center; text-align: center;
     padding: clamp(7px, .9vw, 12px) 4px; border-radius: 12px; min-height: 40px;
@@ -825,11 +830,15 @@
           </div>
           <span class="count-pill" id="notesCount" style="margin-left:0">0</span>
           <div class="page-actions">
+            <div class="segmented" id="notesSrc" style="margin:0;min-width:260px">
+              <button class="seg-btn active" type="button" data-src="board">Tabule</button>
+              <button class="seg-btn" type="button" data-src="apple">Z Poznámek</button>
+            </div>
             <span class="chip" id="notesHint">ukládá se u Googlu</span>
           </div>
         </div>
 
-        <div class="list-toolbar" style="display:flex;gap:.6em;margin-bottom:clamp(9px,1vw,14px)">
+        <div class="list-toolbar" id="notesAddRow" style="display:flex;gap:.6em;margin-bottom:clamp(9px,1vw,14px)">
           <input id="noteInput" type="text" maxlength="500" autocomplete="off"
                  placeholder="Napiš poznámku a klepni na +" style="flex:1;padding:.7em .9em;min-height:46px;border-radius:14px;background:var(--panel-solid);border:1px solid var(--line)">
           <button class="primary-btn" id="noteAdd" type="button" aria-label="Přidat poznámku" style="min-width:56px;justify-content:center">
@@ -1983,26 +1992,30 @@ function renderSchedule() {
     return;
   }
 
+  // Dny jsou v řádcích a hodiny ve sloupcích: rozvrh se čte „co má dneska“,
+  // tedy po jednom řádku, a dnešní den se dá zvýraznit celý.
   var todayDow = new Date().getDay(),
-      cols = "34px repeat(" + SCH_DAYS.length + ", minmax(0, 1fr))",
+      cols = "clamp(38px, 4vw, 54px) repeat(" + max + ", minmax(0, 1fr))",
       html = '<div class="sch-grid">';
 
   html += '<div class="sch-row" style="grid-template-columns:' + cols + '"><div></div>';
-  SCH_DAYS.forEach(function (d) {
-    html += '<div class="sch-h' + (d.dow === todayDow ? " today" : "") + '">' + d.label + "</div>";
-  });
+  for (var i = 0; i < max; i++) {
+    html += '<div class="sch-n sch-n-head">' + (i + 1) + ".</div>";
+  }
   html += "</div>";
 
-  for (var i = 0; i < max; i++) {
-    html += '<div class="sch-row" style="grid-template-columns:' + cols + '">' +
-            '<div class="sch-n">' + (i + 1) + "</div>";
-    SCH_DAYS.forEach(function (d) {
-      var s = (kid.days[d.key] || [])[i] || "";
-      html += '<div class="sch-c' + (s ? "" : " empty") +
-              (d.dow === todayDow ? " col-today" : "") + '">' + esc(s || "·") + "</div>";
-    });
+  SCH_DAYS.forEach(function (d) {
+    var today = d.dow === todayDow;
+    html += '<div class="sch-row' + (today ? " row-today" : "") +
+            '" style="grid-template-columns:' + cols + '">' +
+            '<div class="sch-h' + (today ? " today" : "") + '">' + d.label + "</div>";
+    for (var j = 0; j < max; j++) {
+      var s = (kid.days[d.key] || [])[j] || "";
+      html += '<div class="sch-c' + (s ? "" : " empty") + '">' + esc(s || "·") + "</div>";
+    }
     html += "</div>";
-  }
+  });
+
   html += "</div>";
   view.innerHTML = html;
 }
@@ -2016,11 +2029,42 @@ function openSchEdit(on) {
 
 /* ───────────────────────────  poznámky  ───────────────────────────── */
 
-function renderNotes() {
-  var notes = DATA.notes || [], view = $("#notesView");
+var notesSrc = "board";   // "board" = psané na tabuli, "apple" = zrcadlo Poznámek
 
-  $("#notesCount").textContent = notes.length;
-  $("#notesHint").textContent = CFG.api ? "ukládá se u Googlu" : "potřebuje datové API";
+/** Řádky sdílené Apple poznámky, které sem posílá iOS Zkratka. */
+function appleBoardLines() {
+  return String(DATA.note || "").split(/\r?\n/)
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+}
+
+function renderNotes() {
+  var view = $("#notesView"),
+      apple = notesSrc === "apple",
+      notes = DATA.notes || [],
+      lines = appleBoardLines();
+
+  $$("#notesSrc button").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.src === notesSrc);
+  });
+
+  // přidávat jde jen do poznámek tabule — do iCloud poznámky z webu zapsat nelze
+  $("#notesAddRow").hidden = apple;
+  $("#notesCount").textContent = apple ? lines.length : notes.length;
+  $("#notesHint").textContent = apple
+    ? (DATA.syncedAt ? "z Poznámek · " + hhmm(new Date(DATA.syncedAt)) : "z Apple Poznámek")
+    : (CFG.api ? "ukládá se u Googlu" : "potřebuje datové API");
+
+  if (apple) {
+    view.innerHTML = lines.length
+      ? lines.map(function (t) {
+          return '<div class="note-item"><div class="note-body"><div class="txt">' +
+                 esc(t) + "</div></div></div>";
+        }).join("")
+      : '<div class="empty">Sdílená poznámka je prázdná. Píše se v Apple Poznámkách, ' +
+        "tabule ji jen zobrazuje — postup je v README.</div>";
+    return;
+  }
 
   if (!notes.length) {
     view.innerHTML = '<div class="empty">' +
@@ -2417,6 +2461,10 @@ function bind() {
     openSchEdit(false);
     renderSchedule();
     toast("Rozvrh uložen.");
+  });
+
+  $$("#notesSrc button").forEach(function (b) {
+    b.addEventListener("click", function () { notesSrc = b.dataset.src; renderNotes(); });
   });
 
   $("#noteAdd").addEventListener("click", addNote);

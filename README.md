@@ -344,18 +344,44 @@ horší než tolerantní parser.
 Rozvrh se ukládá do localStorage iPadu, ne k Googlu — je to statická věc,
 která nepotřebuje synchronizaci. Zálohu si udělej zkopírováním textu.
 
-## Poznámky
+## Poznámky a jejich synchronizace
 
-Záložka **Poznámky** je volná nástěnka: napíšeš řádek, klepneš na `+`.
-Ukládají se **u Googlu** ve Script Properties, ne v prohlížeči — vyčištěné
-úložiště Safari by jinak smazalo i to, co si někdo připsal. Objeví se tedy
-na každém zařízení, které tabuli zobrazuje.
+Záložka **Poznámky** má dva zdroje, přepínané nahoře. Je to schválně —
+každý umí něco, co druhý ne, a spojit je do jednoho nejde.
 
-Strop je 40 poznámek po 500 znacích. Je tam proto, že jedna vlastnost Script
-Properties má limit 9 kB a při překročení by zápis začal padat — což je horší
-než odmítnout 41. poznámku.
+### Tabule
 
-Bez nastaveného API poznámky nefungují a záložka to řekne.
+Poznámky psané přímo na panelu. Ukládají se **u Googlu** ve Script Properties,
+ne v prohlížeči — vyčištěné úložiště Safari by jinak smazalo i to, co si někdo
+připsal. Jdou přidávat i mazat a objeví se na každém zařízení, které tabuli
+zobrazuje.
+
+Nesynchronizují se ale do Apple Poznámek. Do iCloud poznámky se z webové
+stránky **zapsat nedá** — Apple na to nemá žádné API a žádná cesta neexistuje.
+
+Strop je 40 poznámek po 500 znacích, protože jedna vlastnost Script Properties
+má limit 9 kB a při překročení by zápis začal padat.
+
+### Z Poznámek
+
+Zrcadlo sdílené Apple poznámky, kterou do tabule posílá iOS Zkratka — stejný
+mechanismus jako u nákupního seznamu. Manželka napíše řádek v Poznámkách na
+telefonu, iCloud to rozešle a Zkratka to při dalším běhu předá tabuli.
+
+Tady je to naopak: **synchronizuje se s Applem, ale na tabuli je to jen ke
+čtení.** Přidávací pole i mazání se v tomhle režimu skryjí, protože by lhaly.
+
+Do Zkratky přidej třetí poznámku (třeba `Nástěnka`) a její text pošli v poli
+`note` — backend na to je připravený, viz část *Seznamy z Apple Poznámek*.
+
+### Který zdroj kdy
+
+| Chci | Zdroj |
+|---|---|
+| Psát z telefonu, aby to bylo na zdi | Z Poznámek |
+| Psát na zdi a hned to vidět | Tabule |
+| Mazat na zdi | Tabule |
+| Aby to viděli všichni v Poznámkách | Z Poznámek |
 
 ## Ikona na plochu
 
