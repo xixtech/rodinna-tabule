@@ -259,10 +259,16 @@
   .ev.next { border-color: rgba(103, 212, 255, .5); box-shadow: 0 0 0 1px rgba(103, 212, 255, .22) inset; }
   .ev.past { opacity: .38; }
 
+  /* Přilepené k hornímu okraji: po doskrolování na nejbližší událost by
+     hlavička „Dnes“ zmizela a z panelu by nebylo poznat, čí je to den.
+     Sticky uvnitř .day drží každou hlavičku jen po dobu jejího dne. */
   .day-sep {
+    position: sticky; top: 0; z-index: 1;
     display: flex; align-items: baseline; gap: .5em;
     padding: clamp(8px, .9vw, 13px) 2px clamp(5px, .5vw, 7px);
     font-size: clamp(11px, 1.1vw, 15px); color: var(--muted);
+    background: var(--fade);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   }
   .day-sep b { color: var(--text); font-size: 1.12em; font-weight: 700; }
   .day-sep .hol { color: var(--yellow); }
