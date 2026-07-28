@@ -11,6 +11,8 @@ Google kalendářů, počasí, svozy popelnic a nákupní seznam z Apple Poznám
 index.html              celá tabule, jeden soubor bez závislostí
 apps-script/Code.gs     datové API (kalendáře + seznamy) běžící u Googlu
 tools/gen-svoz.py       generátor .ics z harmonogramu svozu odpadů
+tools/mkicon.py         generátor ikony na plochu
+apple-touch-icon.png    ikona pro Přidat na plochu
 ```
 
 Harmonogram svozu konkrétní obce a vygenerovaný `.ics` jsou v `.gitignore` —
@@ -304,6 +306,22 @@ nekomerční použití s limitem 10 000 dotazů denně. Tabule se ptá 4× za ho
 tedy ~100 dotazů denně — vejdeme se s velkou rezervou.
 
 Místo se zadává názvem a souřadnice dopočítá geokódovací API Open-Meteo.
+
+V *Nastavení* jde vyplnit i **druhé místo** — v kartě počasí se pak objeví
+přepínač mezi oběma. Obě lokality se načtou jedním dotazem (Open-Meteo bere
+souřadnice oddělené čárkou a vrací pole), takže to nic nezdrží ani nezdvojuje
+počet dotazů.
+
+## Ikona na plochu
+
+`apple-touch-icon.png` je to, co uvidíš na ploše iPadu po *Přidat na plochu*.
+Bez ní by iOS použil zmenšený snímek stránky. Generuje ji `tools/mkicon.py`
+čistým Pythonem bez závislostí — kdybys chtěl jinou barvu nebo motiv, uprav
+konstanty `BG` a `FG` a spusť:
+
+```bash
+python3 tools/mkicon.py apple-touch-icon.png
+```
 
 ## 9. TapHome
 

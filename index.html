@@ -1474,15 +1474,26 @@ function renderOverviewAgenda() {
 
   el.classList.toggle("one-cal", calendarCount() <= 1);
 
-  // po překreslení: doskrolovat na nejbližší událost a ukázat, že to pokračuje
+  // po překreslení doskrolovat na nejbližší událost
   requestAnimationFrame(function () {
     var nx = el.querySelector(".ev.next");
     if (nx) {
       var cr = el.getBoundingClientRect(), er = nx.getBoundingClientRect();
       if (er.bottom > cr.bottom) el.scrollTop += er.top - cr.top - 8;
     }
-    $("#progCard").classList.toggle("more", el.scrollHeight > el.clientHeight + 2);
+    updateScrollHint();
   });
+}
+
+/** Stmívání u spodní hrany, když program pokračuje pod okrajem karty.
+ *  Měří se i v tiku hodin — po prvním vykreslení ještě nemusí být layout
+ *  usazený a jednorázová kontrola v rAF to netrefí. */
+function updateScrollHint() {
+  var el = $("#overviewAgenda");
+  if (!el) return;
+  var more = el.scrollHeight > el.clientHeight + 2 &&
+             el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+  $("#progCard").classList.toggle("more", more);
 }
 
 function renderCalendarPage() {
@@ -1762,6 +1773,7 @@ function tick() {
     (hol ? ' · <span class="holiday">' + esc(hol) + "</span>" : "");
 
   applyTheme();
+  updateScrollHint();
 
   var k = dayKey(now);
   if (lastDayKey && lastDayKey !== k) refreshData();
@@ -1932,6 +1944,9 @@ function bind() {
       renderLists();
     });
   });
+
+  $("#overviewAgenda").addEventListener("scroll", updateScrollHint, { passive: true });
+  window.addEventListener("resize", updateScrollHint);
 
   $("#refreshBtn").addEventListener("click", function () {
     toast("Obnovuji…");
