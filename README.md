@@ -383,6 +383,64 @@ Do Zkratky přidej třetí poznámku (třeba `Nástěnka`) a její text pošli v
 | Mazat na zdi | Tabule |
 | Aby to viděli všichni v Poznámkách | Z Poznámek |
 
+## Odjezdy PID
+
+Záložka **Odjezdy** je odjezdová tabule pro jednu zastávku: linka, směr,
+za kolik minut a v kolik. Odjezd do pěti minut zežloutne, zpoždění se ukáže
+červeně, doplňkově ikony pro nízkopodlažnost a klimatizaci.
+
+Data jsou z **Golemio API** — oficiální otevřené API Prahy pro PID.
+Klíč je zdarma na [api.golemio.cz/api-keys](https://api.golemio.cz/api-keys/).
+
+Jde to přes Apps Script jako proxy ze dvou důvodů: Golemio neposílá CORS
+hlavičky, takže přímý dotaz ze stránky neprojde, a klíč nemá co dělat v kódu
+stránky. Odpověď se cachuje 30 s, protože tabule se ptá častěji, než se data
+mění, a klíč má omezený počet dotazů. Automatické obnovování běží **jen když
+je záložka vidět** — jinak by tabule pálila dotazy celý den pro nic.
+
+### Zastávka se zadává kódem, ne jménem
+
+Golemio chce kód stanoviště podle číselníku ASW (`aswIds`), třeba `539_1` je
+Národní třída. Jméno na kód přeloží přiložený skript z veřejného seznamu
+zastávek na data.pid.cz:
+
+```bash
+python3 tools/najdi-zastavku.py "Národní třída"
+```
+
+```
+Národní třída  (Praha, AB)
+   aswIds=539_1      stanoviště A   pásmo P   linky: —
+   aswIds=539_2      stanoviště B   pásmo P   linky: —
+   aswIds=539_101    stanoviště M1  pásmo P   linky: B
+   aswIds=539_102    stanoviště M2  pásmo P   linky: B
+```
+
+Seznam má 18 MB, proto se překlad dělá na počítači a do tabule jde hotový kód.
+Skript si ho jednou stáhne a odloží zeštíhlený do `tools/.stops-cache.json`
+(v `.gitignore`). Volitelně `--linka 22` ukáže jen zastávky s tou linkou,
+`--vse` i částečné shody a `--obnovit` stáhne seznam znovu.
+
+### Nastavení
+
+V `CONFIG.PID` v Apps Scriptu:
+
+```js
+PID: {
+  KEY: 'klíč z api.golemio.cz',
+  ASW_IDS: '539_1,539_2',     // víc stanovišť oddělených čárkou
+  LINES: ['22'],              // jen tyhle linky, prázdné = všechny
+  LIMIT: 8,
+  MINUTES_AFTER: 180
+}
+```
+
+Popisek zastávky nad tabulí se vyplňuje v *Nastavení* tabule — je to jen text,
+skutečné stanoviště určuje `ASW_IDS`.
+
+Ověřit to jde funkcí **`testPid`**, která do Protokolu vypíše celou odpověď
+i nápovědu, když něco chybí.
+
 ## Ikona na plochu
 
 `apple-touch-icon.png` je to, co uvidíš na ploše iPadu po *Přidat na plochu*.

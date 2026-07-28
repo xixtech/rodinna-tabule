@@ -7,3 +7,6 @@ tools/svoz-data-*.json
 svoz-odpadu-*.ics
 
 # Adresa se zadava v Nastaveni tabule, nikdy do souboru.
+
+# Zeštíhlená cache seznamu zastávek PID, stahuje si ji tools/najdi-zastavku.py
+tools/.stops-cache.json

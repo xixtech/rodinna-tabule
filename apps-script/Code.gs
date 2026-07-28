@@ -72,7 +72,24 @@ var CONFIG = {
    *  Properties má limit 9 kB na jednu vlastnost — při překročení by zápis
    *  začal padat, což je horší než odmítnout 41. poznámku. */
   MAX_NOTES: 40,
-  MAX_NOTE_TEXT: 500
+  MAX_NOTE_TEXT: 500,
+
+  /** Odjezdy PID z Golemio API.
+   *
+   *  KEY      – klíč zdarma z https://api.golemio.cz/api-keys/
+   *  ASW_IDS  – kódy stanovišť, víc oddělených čárkou. NENÍ to jméno zastávky;
+   *             kód najdeš skriptem `python3 tools/najdi-zastavku.py "Národní třída"`
+   *  LINES    – jen tyhle linky, prázdné pole = všechny
+   *  LIMIT    – kolik odjezdů vrátit
+   *
+   *  Klíč zůstává tady na serveru, do prohlížeče se nedostane. */
+  PID: {
+    KEY: '',
+    ASW_IDS: '',
+    LINES: [],
+    LIMIT: 8,
+    MINUTES_AFTER: 180
+  }
 };
 
 var PROPS = PropertiesService.getScriptProperties();
@@ -92,6 +109,7 @@ function doGet(e) {
     if (p.action === 'addEvent') return out(addEvent(p), cb);
     if (p.action === 'addNote')  return out(addNote(p), cb);
     if (p.action === 'delNote')  return out(delNote(p), cb);
+    if (p.action === 'pid')      return out(pidDepartures(), cb);
 
     var days = parseInt(p.days, 10);
     if (!days || days < 1) days = CONFIG.DEFAULT_DAYS;
@@ -214,6 +232,89 @@ function readList(key) {
   } catch (err) {
     return [];
   }
+}
+
+/* ═════════════════════════  odjezdy PID  ════════════════════════════ */
+
+/**
+ * Odjezdy ze zastávky přes Golemio API.
+ *
+ * Jde to přes proxy ze dvou důvodů: klíč nesmí skončit v prohlížeči a Golemio
+ * neposílá CORS hlavičky, takže by přímý dotaz ze stránky stejně neprošel.
+ *
+ * Odpověď cachujeme 30 s — tabule se ptá častěji, než se data mění, a klíč
+ * má omezený počet dotazů.
+ */
+function pidDepartures() {
+  var cfg = CONFIG.PID || {};
+  if (!cfg.KEY) return { error: 'chybí Golemio API klíč (CONFIG.PID.KEY)' };
+  if (!cfg.ASW_IDS) return { error: 'chybí kód stanoviště (CONFIG.PID.ASW_IDS)' };
+
+  var cache = CacheService.getScriptCache(),
+      hit = cache.get('pid');
+  if (hit) {
+    try { return JSON.parse(hit); } catch (err) { /* spadneme na nové volání */ }
+  }
+
+  var url = 'https://api.golemio.cz/v2/pid/departureboards/' +
+            '?aswIds=' + encodeURIComponent(cfg.ASW_IDS) +
+            '&limit=' + encodeURIComponent(Math.min(30, cfg.LIMIT * 3 || 20)) +
+            '&minutesAfter=' + encodeURIComponent(cfg.MINUTES_AFTER || 180) +
+            '&skip=atStop&mode=departures&order=real';
+
+  var res;
+  try {
+    res = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: { 'x-access-token': cfg.KEY },
+      muteHttpExceptions: true
+    });
+  } catch (err) {
+    return { error: 'Golemio nedostupné: ' + String((err && err.message) || err) };
+  }
+
+  var code = res.getResponseCode();
+  if (code === 401 || code === 403) return { error: 'Golemio odmítlo klíč (' + code + ')' };
+  if (code !== 200) return { error: 'Golemio vrátilo HTTP ' + code };
+
+  var body;
+  try {
+    body = JSON.parse(res.getContentText());
+  } catch (err) {
+    return { error: 'Golemio poslalo něco, co není JSON' };
+  }
+
+  var want = (cfg.LINES || []).map(String),
+      list = [];
+
+  (body.departures || []).forEach(function (d) {
+    var line = String(((d.route || {}).short_name) || '');
+    if (want.length && want.indexOf(line) < 0) return;
+    if (list.length >= (cfg.LIMIT || 8)) return;
+
+    var ts = d.departure_timestamp || {};
+    list.push({
+      line: line,
+      headsign: ((d.trip || {}).headsign) || '',
+      minutes: ts.minutes != null ? String(ts.minutes) : '',
+      at: ts.predicted || ts.scheduled || null,
+      delay: ((d.delay || {}).minutes != null) ? d.delay.minutes : null,
+      ac: !!((d.trip || {}).is_air_conditioned),
+      wheelchair: ((d.trip || {}).is_wheelchair_accessible) === true,
+      platform: ((d.stop || {}).platform_code) || ''
+    });
+  });
+
+  var result = {
+    departures: list,
+    infotexts: (body.infotexts || []).map(function (t) {
+      return String(t.text || t.description || '').slice(0, 300);
+    }).filter(Boolean).slice(0, 3),
+    at: new Date().toISOString()
+  };
+
+  cache.put('pid', JSON.stringify(result), 30);
+  return result;
 }
 
 /* ═══════════════════════  volné poznámky  ═══════════════════════════ */
@@ -423,6 +524,16 @@ function testPost() {
   });
   Logger.log(r.getContent());
   Logger.log(JSON.stringify(readLists(), null, 2));
+}
+
+/** Kontrola odjezdů PID. Napoví, co přesně Golemio vrátilo. */
+function testPid() {
+  var r = pidDepartures();
+  Logger.log(JSON.stringify(r, null, 2));
+  if (r.error) {
+    Logger.log('--- Zkontroluj CONFIG.PID: klíč z api.golemio.cz a kód stanoviště ' +
+               'ze skriptu tools/najdi-zastavku.py ---');
+  }
 }
 
 /** Kontrola poznámek bez volání přes web. */

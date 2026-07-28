@@ -486,6 +486,35 @@
   .sch-c.empty { background: transparent; border-style: dashed; color: var(--muted-2); }
   .sch-col-today .sch-c { border-color: rgba(103, 212, 255, .3); }
 
+  /* ══════════════════ odjezdy PID ══════════════════ */
+  .dep {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+    gap: clamp(9px, 1.1vw, 15px);
+    padding: clamp(6px, .8vw, 11px) clamp(10px, 1.1vw, 15px);
+    margin-bottom: 4px; border-radius: 13px;
+    background: var(--panel-solid); border: 1px solid var(--line);
+  }
+  .dep-line {
+    min-width: 2.6em; padding: .22em .5em; border-radius: 9px; text-align: center;
+    font-size: clamp(13px, 1.35vw, 19px); font-weight: 750;
+    background: rgba(103, 212, 255, .16); border: 1px solid rgba(103, 212, 255, .3);
+    color: var(--blue);
+  }
+  .dep-to { min-width: 0; font-size: clamp(12px, 1.25vw, 17px); font-weight: 560;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dep-meta { font-size: clamp(9px, .92vw, 12px); color: var(--muted-2); margin-top: 1px; }
+  .dep-in { text-align: right; white-space: nowrap; }
+  .dep-min { font-size: clamp(15px, 1.6vw, 23px); font-weight: 700; line-height: 1; }
+  .dep-at { font-size: clamp(9px, .92vw, 12px); color: var(--muted-2); }
+  .dep.soon .dep-min { color: var(--yellow); }
+  .dep-late { color: var(--red); }
+
+  #pidInfo {
+    margin-bottom: clamp(8px, .9vw, 12px); padding: .6em .85em; border-radius: 12px;
+    background: rgba(255, 209, 102, .1); border: 1px solid rgba(255, 209, 102, .28);
+    color: var(--yellow); font-size: clamp(10px, 1.05vw, 14px); line-height: 1.5;
+  }
+
   /* ══════════════════ poznámky ══════════════════ */
   .note-item {
     display: flex; align-items: flex-start; gap: clamp(9px, 1vw, 14px);
@@ -822,6 +851,28 @@
       </article>
     </section>
 
+    <!-- ── Odjezdy PID ── -->
+    <section class="page" data-page="pid">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21l1.5-4M16 21l-1.5-4"/><circle cx="8.5" cy="14.5" r=".6"/><circle cx="15.5" cy="14.5" r=".6"/></svg>
+            Odjezdy
+          </div>
+          <span class="chip" id="pidStop">—</span>
+          <div class="page-actions">
+            <span class="chip" id="pidAt">—</span>
+            <button class="soft-btn accent" id="pidRefresh" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+              Obnovit
+            </button>
+          </div>
+        </div>
+        <div id="pidInfo" hidden></div>
+        <div id="pidView" class="scroll"></div>
+      </article>
+    </section>
+
     <!-- ── Poznámky ── -->
     <section class="page" data-page="notes">
       <article class="full-card glass">
@@ -942,6 +993,11 @@
           <section class="sect">
             <h3>Seznamy z Apple Poznámek</h3>
             <div class="field">
+              <label for="fPidStop">Popisek zastávky</label>
+              <input id="fPidStop" type="text" maxlength="60" placeholder="např. Národní třída">
+              <div class="field-help">Jen text nad odjezdy. Skutečné stanoviště se nastavuje v Apps Scriptu v <code>CONFIG.PID</code>, protože tam zůstává i klíč ke Golemio. Kód stanoviště najdeš skriptem <code>tools/najdi-zastavku.py</code>.</div>
+            </div>
+            <div class="field">
               <label for="fShortcut">Název iOS Zkratky</label>
               <input id="fShortcut" type="text" placeholder="Tabule sync">
               <div class="field-help">Tlačítko „Synchronizovat“ spustí tuhle Zkratku na iPadu. Zkratka přečte poznámky a pošle je do Apps Scriptu — postup v README.</div>
@@ -1002,6 +1058,10 @@
     <button class="nav-btn" type="button" data-go="schedule">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13"/><path d="M4 19h16M8 8h8M8 12h8M8 16h5"/></svg>
       <span>Rozvrh</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="pid">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21l1.5-4M16 21l-1.5-4"/></svg>
+      <span>Odjezdy</span>
     </button>
     <button class="nav-btn" type="button" data-go="notes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>
@@ -1125,6 +1185,7 @@ var DEFAULTS = {
   // v localStorage tohoto iPadu. Hosting je veřejný, tak to tak má zůstat.
   address: "",
   schedule: "",              // školní rozvrh textem, viz parseSchedule()
+  pidStop: "",               // jen popisek zastávky; kód stanoviště je v Apps Scriptu
   shortcut: "Tabule sync",
   taphome: "",
   theme: "auto",
@@ -1893,6 +1954,105 @@ function runShortcut() {
   setTimeout(refreshData, 6000);
 }
 
+/* ────────────────────────────  odjezdy PID  ───────────────────────── */
+
+var PID = null;        // poslední odpověď z proxy
+var pidTimer = null;   // obnovování jen když je záložka vidět
+
+function demoDepartures() {
+  var now = Date.now();
+  function d(line, to, min, extra) {
+    return Object.assign({
+      line: line, headsign: to, minutes: String(min),
+      at: new Date(now + min * 6e4).toISOString(),
+      delay: null, ac: false, wheelchair: false, platform: ""
+    }, extra || {});
+  }
+  return {
+    demo: true,
+    at: new Date().toISOString(),
+    infotexts: [],
+    departures: [
+      d("461", "Praha, Háje", 4, { wheelchair: true, platform: "A" }),
+      d("462", "Mnichovice", 12, { delay: 2, platform: "B" }),
+      d("461", "Praha, Háje", 34, { ac: true, wheelchair: true, platform: "A" }),
+      d("462", "Říčany", 51, { platform: "B" })
+    ]
+  };
+}
+
+function renderPid() {
+  var view = $("#pidView"), info = $("#pidInfo");
+
+  $("#pidStop").textContent = CFG.pidStop || "zastávka z Apps Scriptu";
+
+  if (!CFG.api && !PID) PID = demoDepartures();
+
+  if (!PID) {
+    info.hidden = true;
+    view.innerHTML = '<div class="empty">Načítám odjezdy…</div>';
+    return;
+  }
+  if (PID.err) {
+    info.hidden = true;
+    view.innerHTML = '<div class="empty">' + esc(PID.err) + "</div>";
+    return;
+  }
+
+  $("#pidAt").textContent = PID.at ? "aktualizováno " + hhmm(new Date(PID.at)) : "";
+
+  var texts = PID.infotexts || [];
+  info.hidden = !texts.length;
+  info.innerHTML = texts.map(esc).join("<br>");
+
+  var deps = PID.departures || [];
+  if (!deps.length) {
+    view.innerHTML = '<div class="empty">V nejbližší době nic nejede.</div>';
+    return;
+  }
+
+  view.innerHTML = deps.map(function (d) {
+    var m = d.minutes,
+        num = parseInt(m, 10),
+        soon = !isNaN(num) && num <= 5,
+        at = d.at ? hhmm(new Date(d.at)) : "",
+        bits = [];
+
+    if (d.platform) bits.push("stanoviště " + esc(d.platform));
+    if (d.delay != null && d.delay >= 1) bits.push('<span class="dep-late">+' + d.delay + " min</span>");
+    if (d.wheelchair) bits.push("♿");
+    if (d.ac) bits.push("❄︎");
+
+    return '<div class="dep' + (soon ? " soon" : "") + '">' +
+             '<div class="dep-line">' + esc(d.line) + "</div>" +
+             "<div><div class=\"dep-to\">" + esc(d.headsign) + "</div>" +
+               (bits.length ? '<div class="dep-meta">' + bits.join(" · ") + "</div>" : "") +
+             "</div>" +
+             '<div class="dep-in"><div class="dep-min">' +
+               (m === "" ? "—" : esc(m) + '<span style="font-size:.62em;font-weight:500"> min</span>') +
+             "</div>" + (at ? '<div class="dep-at">' + at + "</div>" : "") + "</div>" +
+           "</div>";
+  }).join("");
+}
+
+function refreshPid() {
+  if (!CFG.api) { PID = demoDepartures(); renderPid(); return Promise.resolve(); }
+  return apiCall({ action: "pid" }).then(function (d) {
+    PID = d;
+    renderPid();
+  }).catch(function (err) {
+    PID = { err: humanError(err) };
+    renderPid();
+  });
+}
+
+/** Odjezdy stárnou po sekundách, ale ptát se pořád nemá smysl —
+ *  obnovujeme jen když je záložka opravdu vidět. */
+function pidAutoRefresh(on) {
+  if (pidTimer) { clearInterval(pidTimer); pidTimer = null; }
+  if (on) pidTimer = setInterval(refreshPid, 30000);
+}
+
 /* ─────────────────────────  školní rozvrh  ────────────────────────── */
 
 var SCH_DAYS = [
@@ -2350,6 +2510,8 @@ function go(page) {
 
   $$(".page").forEach(function (p) { p.classList.toggle("active", p.dataset.page === page); });
   $$(".nav-btn[data-go]").forEach(function (b) { b.classList.toggle("active", b.dataset.go === page); });
+  pidAutoRefresh(page === "pid");
+  if (page === "pid") { renderPid(); refreshPid(); }
   if (page === "settings") fillSettings();
   if (page === "schedule") { openSchEdit(false); renderSchedule(); }
   if (page === "notes") { renderNotes(); setTimeout(function () { $("#noteInput").focus(); }, 80); }
@@ -2365,6 +2527,7 @@ function fillSettings() {
   $("#fPlace2").value = CFG.place2 || "";
   $("#fFamily").value = CFG.family;
   $("#fAddress").value = CFG.address || "";
+  $("#fPidStop").value = CFG.pidStop || "";
   $("#fShortcut").value = CFG.shortcut;
   $("#fTapHome").value = CFG.taphome;
   $$("#themeSeg button").forEach(function (b) {
@@ -2384,6 +2547,7 @@ function saveSettings() {
   CFG.place2 = $("#fPlace2").value.trim();
   CFG.family = $("#fFamily").value.trim() || DEFAULTS.family;
   CFG.address = $("#fAddress").value.trim().slice(0, 160);
+  CFG.pidStop = $("#fPidStop").value.trim();
   CFG.shortcut = $("#fShortcut").value.trim();
   CFG.taphome = $("#fTapHome").value.trim();
 
@@ -2467,6 +2631,11 @@ function bind() {
 
   $$("#notesSrc button").forEach(function (b) {
     b.addEventListener("click", function () { notesSrc = b.dataset.src; renderNotes(); });
+  });
+
+  $("#pidRefresh").addEventListener("click", function () {
+    toast("Obnovuji odjezdy…");
+    refreshPid();
   });
 
   $("#noteAdd").addEventListener("click", addNote);
