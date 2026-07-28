@@ -1,0 +1,2073 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tabule">
+<meta name="theme-color" content="#eaf0f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08101d" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex, nofollow">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<title>Rodinná tabule</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #08101d;
+    --panel: rgba(17, 28, 47, 0.91);
+    --panel-solid: #111c2f;
+    --panel-2: rgba(255, 255, 255, 0.055);
+    --panel-3: rgba(255, 255, 255, 0.095);
+    --text: #f4f7fb;
+    --muted: #9eacc1;
+    --muted-2: #718099;
+    --line: rgba(255, 255, 255, 0.09);
+    --blue: #67d4ff;
+    --green: #7be0a8;
+    --yellow: #ffd166;
+    --purple: #bba5ff;
+    --red: #ff8c9b;
+    --shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+    --r-xl: 30px;
+    --r-lg: 22px;
+    --r-md: 17px;
+    --nav-h: clamp(62px, 7vh, 78px);
+    --fade: rgba(17, 28, 47, .96);
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #eaf0f7;
+    --panel: rgba(255, 255, 255, 0.92);
+    --panel-solid: #ffffff;
+    --panel-2: rgba(17, 38, 68, 0.05);
+    --panel-3: rgba(17, 38, 68, 0.09);
+    --text: #10203a;
+    --muted: #5f7089;
+    --muted-2: #8190a4;
+    --line: rgba(15, 34, 62, 0.10);
+    --blue: #0069c0;
+    --green: #16845b;
+    --yellow: #8a5d00;
+    --purple: #6b4bc4;
+    --red: #c74459;
+    --shadow: 0 18px 45px rgba(55, 75, 104, 0.18);
+    --fade: rgba(255, 255, 255, .96);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(39, 121, 255, .21), transparent 63%),
+      radial-gradient(780px 520px at 95% 2%, rgba(88, 214, 255, .12), transparent 62%),
+      var(--bg);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  /* Zbytek tabule má výběr textu vypnutý, ve formulářích ho ale potřebujeme,
+     jinak se na iPadu nedá rozumně opravit ani token. */
+  input, textarea { -webkit-user-select: text; user-select: text; }
+  button { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+  :focus-visible { outline: 3px solid rgba(103, 212, 255, .45); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  svg { width: 1em; height: 1em; flex: 0 0 auto; }
+
+  /* ══════════════════ skelet ══════════════════ */
+  /* Na přehledu jde program až k hornímu okraji a hlavička s datem a časem
+     sedí jen nad pravou polovinou. Na ostatních stránkách je hlavička přes
+     celou šířku, protože tam žádný levý sloupec není. */
+  .app {
+    width: 100%; height: 100%;
+    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+             calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    display: grid;
+    /* minmax(0,…) je tu nutné: samotné 1.08fr se nezmenší pod min-content
+       pravého sloupce (hodiny + pruhy počasí) a program by dostal méně
+       místa než druhá polovina, tedy pravý opak toho, co chceme. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-rows: auto 1fr var(--nav-h);
+    gap: clamp(9px, 1.1vw, 14px);
+  }
+  /* Program je vpravo a širší, hlavička s počasím a seznamy vlevo. */
+  .app.home {
+    grid-template-areas:
+      "head prog"
+      "side prog"
+      "nav  nav";
+  }
+  .app.sub {
+    grid-template-areas:
+      "head head"
+      "body body"
+      "nav  nav";
+  }
+  .header   { grid-area: head; }
+  #progCol  { grid-area: prog; }
+  #sideCol  { grid-area: side; }
+  .pages    { grid-area: body; }
+  .nav      { grid-area: nav; }
+  .app.home .pages { display: none; }
+  .app.sub #progCol, .app.sub #sideCol { display: none; }
+  .glass {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+  }
+
+  /* ══════════════════ hlavička ══════════════════
+     UX: na zdi má hlavička nést jen datum, čas a místo. Ovládací prvky
+     se ukazují až když je co řešit – offline stav, zastaralá data. */
+  .header {
+    border-radius: var(--r-xl);
+    padding: clamp(10px, 1.1vw, 16px) clamp(14px, 1.6vw, 22px);
+    display: flex; align-items: center; gap: clamp(12px, 1.5vw, 20px);
+  }
+  .brand-mark {
+    width: clamp(38px, 3.6vw, 50px); height: clamp(38px, 3.6vw, 50px);
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    font-size: clamp(19px, 1.8vw, 25px);
+    color: var(--blue);
+    background: linear-gradient(150deg, rgba(103, 212, 255, .22), rgba(37, 136, 255, .16));
+    border: 1px solid rgba(103, 212, 255, .2);
+  }
+  /* Datum má přednost: brand-copy roste, štítek stavu se zkrátí první. */
+  .brand-copy { flex: 1 1 auto; min-width: 0; }
+  .eyebrow {
+    font-size: clamp(9px, .85vw, 12px); font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted-2);
+  }
+  /* Hlavička je nad pravou polovinou, takže je úzká. Den a datum proto pod
+     sebe — na jeden řádek se „Pondělí 27. července“ nevejde a zkracovalo se. */
+  .date-day {
+    font-size: clamp(16px, 1.85vw, 26px); font-weight: 700; letter-spacing: -.015em;
+    line-height: 1.1; white-space: nowrap;
+  }
+  .date-rest {
+    font-size: clamp(11px, 1.15vw, 16px); color: var(--muted); line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .date-rest .holiday { color: var(--yellow); }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: clamp(8px, 1vw, 14px); min-width: 0; }
+  .header-right #statusChip { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+  .header-right #statusChip span:last-child { overflow: hidden; text-overflow: ellipsis; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: .45em;
+    padding: .4em .75em; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    font-size: clamp(10px, 1vw, 13px); color: var(--muted);
+    white-space: nowrap;
+  }
+  .chip.warn { color: var(--yellow); border-color: rgba(255, 209, 102, .3); background: rgba(255, 209, 102, .1); }
+  .chip-dot { width: .55em; height: .55em; border-radius: 50%; background: var(--green); }
+  .chip.warn .chip-dot { background: var(--yellow); }
+
+  .icon-btn {
+    width: clamp(40px, 3.4vw, 46px); height: clamp(40px, 3.4vw, 46px);
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    font-size: clamp(16px, 1.5vw, 20px);
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  }
+  .icon-btn:active { background: var(--panel-3); }
+
+  .time-box { text-align: right; line-height: 1.05; flex: 0 0 auto; }
+  .time { font-size: clamp(26px, 3.1vw, 44px); font-weight: 300; letter-spacing: -.03em; }
+  .loc { font-size: clamp(10px, 1vw, 14px); color: var(--muted); }
+
+  /* ══════════════════ stránky ══════════════════ */
+  .pages { min-height: 0; position: relative; }
+  .page { position: absolute; inset: 0; display: none; }
+  .page.active { display: block; }
+
+  .col { display: flex; flex-direction: column; gap: clamp(9px, 1.1vw, 14px); min-height: 0; }
+  .card { border-radius: var(--r-lg); padding: clamp(12px, 1.35vw, 20px); min-height: 0; }
+  .card.fill { flex: 1; display: flex; flex-direction: column; }
+  .full-card {
+    height: 100%; border-radius: var(--r-lg);
+    padding: clamp(14px, 1.5vw, 22px);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+
+  .card-head { display: flex; align-items: center; gap: .6em; margin-bottom: clamp(8px, .9vw, 13px); }
+  .card-title {
+    display: flex; align-items: center; gap: .5em;
+    font-size: clamp(14px, 1.4vw, 20px); font-weight: 680; letter-spacing: -.01em;
+  }
+  .card-title svg { color: var(--blue); }
+  .card-sub { font-size: clamp(10px, .95vw, 13px); color: var(--muted-2); margin-top: 2px; }
+  .count-pill {
+    margin-left: auto; min-width: 1.9em; padding: .25em .6em; border-radius: 999px;
+    background: var(--panel-3); font-size: clamp(11px, 1.05vw, 14px); font-weight: 700;
+    text-align: center; color: var(--muted);
+  }
+
+  /* ══════════════════ agenda ══════════════════ */
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* Posuvník je skrytý, takže na zdi není jak poznat, že program pokračuje.
+     Když se do karty nevejde, přisvítí u spodní hrany jemné stmívání. */
+  #progCard { position: relative; }
+  #progCard.more::after {
+    content: ""; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 38px;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    background: linear-gradient(to top, var(--fade), transparent);
+    pointer-events: none;
+  }
+
+  /* Když je nakonfigurovaný jen jeden kalendář, štítek se jménem je zbytečný. */
+  .one-cal .ev-who { display: none; }
+
+  /* Písmo je o kousek menší než dřív schválně – na zeď se tak vejde víc řádků
+     programu, což je to, co se z odstupu čte nejčastěji. */
+  .ev {
+    display: grid; grid-template-columns: clamp(58px, 5.6vw, 78px) 4px 1fr auto;
+    align-items: center; gap: clamp(7px, .9vw, 12px);
+    padding: clamp(7px, .8vw, 11px) clamp(9px, 1vw, 14px);
+    margin-bottom: clamp(4px, .5vw, 7px);
+    border-radius: var(--r-md);
+    background: var(--panel-solid); border: 1px solid var(--line);
+    min-height: 46px;                       /* pořád dost pro prst z odstupu */
+  }
+  .ev-time { font-size: clamp(13px, 1.3vw, 18px); font-weight: 720; line-height: 1.15; }
+  .ev-time small { display: block; font-size: .64em; font-weight: 600; color: var(--muted-2); letter-spacing: .06em; }
+  .ev-bar { align-self: stretch; border-radius: 4px; min-height: 22px; }
+  .ev-body { min-width: 0; }
+  .ev-title {
+    font-size: clamp(13px, 1.3vw, 18px); font-weight: 620;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ev-meta { margin-top: 1px; font-size: clamp(10px, .95vw, 12px); color: var(--muted); }
+  .ev-who {
+    padding: .3em .7em; border-radius: 999px; background: var(--panel-3);
+    font-size: clamp(10px, .95vw, 13px); color: var(--muted); white-space: nowrap;
+  }
+  /* UX: nejbližší událost musí být poznat na první pohled z druhého konce pokoje */
+  .ev.next { border-color: rgba(103, 212, 255, .5); box-shadow: 0 0 0 1px rgba(103, 212, 255, .22) inset; }
+  .ev.past { opacity: .38; }
+
+  .day-sep {
+    display: flex; align-items: baseline; gap: .5em;
+    padding: clamp(8px, .9vw, 13px) 2px clamp(5px, .5vw, 7px);
+    font-size: clamp(11px, 1.1vw, 15px); color: var(--muted);
+  }
+  .day-sep b { color: var(--text); font-size: 1.12em; font-weight: 700; }
+  .day-sep .hol { color: var(--yellow); }
+  .day-sep:first-child { padding-top: 0; }
+
+  .empty { padding: clamp(10px, 1.2vw, 16px) 2px; color: var(--muted-2); font-size: clamp(11px, 1.15vw, 15px); }
+
+  /* ══════════════════ svoz odpadu ══════════════════
+     UX: samostatná dlaždice, protože v seznamu událostí se to ztratí
+     a zapomenutá popelnice je jediná chyba, která má fyzický následek. */
+  .waste {
+    display: flex; align-items: center; gap: clamp(10px, 1.2vw, 16px);
+    padding: clamp(11px, 1.2vw, 17px) clamp(13px, 1.4vw, 19px);
+    border-radius: var(--r-lg);
+  }
+  .waste-icon { font-size: clamp(24px, 2.6vw, 38px); line-height: 1; }
+  .waste-when { font-size: clamp(15px, 1.6vw, 23px); font-weight: 700; }
+  .waste-what { font-size: clamp(11px, 1.05vw, 15px); color: var(--muted); margin-top: 2px; }
+  .waste-next {
+    margin-left: auto; text-align: right; line-height: 1.6;
+    font-size: clamp(10px, 1vw, 13px); color: var(--muted-2); white-space: nowrap;
+  }
+  .waste.soon { border-color: rgba(255, 209, 102, .42); background: rgba(255, 209, 102, .1); }
+  .waste.soon .waste-when { color: var(--yellow); }
+
+  /* ══════════════════ poznámka ══════════════════ */
+  /* ══════════════════ počasí ══════════════════
+     Sekce je držená schválně nízko — místo, které ušetří, dostanou seznamy. */
+  .wx-top { display: flex; align-items: center; gap: clamp(9px, 1.1vw, 14px); }
+  .wx-symbol { font-size: clamp(30px, 3.4vw, 46px); line-height: 1; }
+  .wx-temp { font-size: clamp(27px, 3.1vw, 42px); font-weight: 300; line-height: 1; letter-spacing: -.025em; }
+  .wx-desc { font-size: clamp(11px, 1.1vw, 15px); color: var(--muted); margin-top: .15em; }
+  .wx-facts {
+    margin-left: auto; text-align: right; font-size: clamp(9px, .95vw, 13px);
+    color: var(--muted); line-height: 1.45;
+  }
+
+  /* přepínač lokalit – malé pilulky, ať sekce nenaroste o celý řádek */
+  .place-tabs { display: flex; gap: 3px; justify-content: flex-end; margin-bottom: 4px; }
+  .place-tabs button {
+    padding: .3em .7em; border-radius: 999px; min-height: 26px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted-2);
+    font-size: clamp(9px, .92vw, 12px); font-weight: 640; white-space: nowrap;
+  }
+  .place-tabs button.active {
+    background: rgba(103, 212, 255, .16); border-color: rgba(103, 212, 255, .38); color: var(--blue);
+  }
+  .wx-facts b { color: var(--text); font-weight: 640; }
+  .wx-hint {
+    margin-top: clamp(8px, .9vw, 12px); padding-top: clamp(8px, .9vw, 12px);
+    border-top: 1px solid var(--line);
+    font-size: clamp(11px, 1.1vw, 15px); color: var(--blue);
+  }
+  /* Hodinový pruh a týdenní výhled vypadaly stejně a nebylo poznat, co je co.
+     Odlišuje je popisek, podbarvení hodin a rozsahový pruh teplot u dnů. */
+  .strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
+  .strip-wrap { margin-top: clamp(7px, .8vw, 11px); }
+  .strip-label {
+    display: flex; align-items: baseline; gap: .5em;
+    font-size: clamp(8px, .8vw, 10px); font-weight: 700;
+    letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted-2); margin-bottom: 3px;
+  }
+  .strip-label em {
+    font-style: normal; letter-spacing: 0; text-transform: none;
+    font-weight: 500; font-size: 1.15em; color: var(--muted);
+  }
+  .strip.hours {
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 15px; padding: 3px;
+  }
+  .sd { text-align: center; padding: clamp(3px, .5vw, 6px) 2px; border-radius: 12px; }
+  .sd.now { background: var(--panel-3); }
+  .sd-d { font-size: clamp(8px, .85vw, 11px); color: var(--muted-2); text-transform: lowercase; }
+  .strip.days .sd-d { font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .sd-i { font-size: clamp(15px, 1.6vw, 22px); line-height: 1.25; }
+  .sd-t { font-size: clamp(9px, .98vw, 13px); font-weight: 600; }
+  .sd-t .lo { color: var(--muted-2); font-weight: 400; }
+  /* bez min-height: když nikde neprší, řádek se sbalí a sekce je nižší */
+  .sd-p { font-size: clamp(8px, .82vw, 11px); color: var(--blue); }
+
+  /* poloha pruhu = kde leží denní rozsah teplot v rámci celého týdne */
+  .sd-range { position: relative; height: 5px; margin: 3px 3px 0; border-radius: 3px; background: var(--panel-3); }
+  .sd-range span {
+    position: absolute; top: 0; bottom: 0; border-radius: 3px;
+    background: linear-gradient(90deg, #67d4ff, #ffd166);
+  }
+  :root[data-theme="light"] .sd-range span { background: linear-gradient(90deg, #0088cc, #e08c00); }
+
+  /* ══════════════════ seznamy ══════════════════ */
+  .segmented {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px;
+    padding: 3px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+    margin-bottom: clamp(8px, .9vw, 12px);
+  }
+  .seg-btn {
+    padding: .55em .5em; border: 0; border-radius: 999px; background: transparent;
+    color: var(--muted); font-size: clamp(11px, 1.1vw, 15px); font-weight: 620;
+    min-height: 38px;
+  }
+  .seg-btn.active { background: var(--panel-solid); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+  .seg-btn .n { opacity: .6; font-weight: 500; }
+
+  .li {
+    display: flex; align-items: center; gap: clamp(9px, 1vw, 13px);
+    padding: clamp(8px, .9vw, 12px) clamp(9px, 1vw, 13px);
+    margin-bottom: 5px; border-radius: var(--r-md);
+    background: var(--panel-solid); border: 1px solid var(--line);
+    min-height: 46px;
+  }
+  .li-box {
+    width: 1.35em; height: 1.35em; border-radius: 50%; flex: 0 0 auto;
+    border: 2px solid var(--muted-2); display: grid; place-items: center;
+    font-size: clamp(12px, 1.2vw, 16px); color: transparent;
+  }
+  .li.done .li-box { background: var(--green); border-color: var(--green); color: #06251a; }
+  .li-label { font-size: clamp(12px, 1.25vw, 17px); font-weight: 560; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .li.done .li-label { text-decoration: line-through; color: var(--muted-2); font-weight: 400; }
+
+  .src-row {
+    display: flex; align-items: center; gap: .6em; flex-wrap: wrap;
+    margin-top: auto; padding-top: clamp(8px, .9vw, 12px);
+    border-top: 1px solid var(--line);
+    font-size: clamp(10px, .95vw, 13px); color: var(--muted-2);
+  }
+  .soft-btn {
+    display: inline-flex; align-items: center; gap: .45em;
+    padding: .55em .9em; border-radius: 999px; min-height: 40px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    font-size: clamp(11px, 1.05vw, 14px); font-weight: 600;
+  }
+  .soft-btn:active { background: var(--panel-3); }
+  .soft-btn.accent { color: var(--blue); border-color: rgba(103, 212, 255, .3); background: rgba(103, 212, 255, .1); }
+  .danger-btn {
+    display: inline-flex; align-items: center; gap: .45em;
+    padding: .55em .9em; border-radius: 999px; min-height: 40px;
+    background: rgba(255, 140, 155, .1); border: 1px solid rgba(255, 140, 155, .3);
+    color: var(--red); font-size: clamp(11px, 1.05vw, 14px); font-weight: 600;
+  }
+
+  /* ══════════════════ stránka Kalendář ══════════════════ */
+  .page-title-row { display: flex; align-items: center; gap: .7em; margin-bottom: clamp(10px, 1.1vw, 15px); flex-wrap: wrap; }
+  .page-title { display: flex; align-items: center; gap: .5em; font-size: clamp(16px, 1.7vw, 24px); font-weight: 700; }
+  .page-title svg { color: var(--blue); }
+  .page-actions { margin-left: auto; display: flex; gap: .5em; flex-wrap: wrap; }
+
+  .agenda-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.2vw, 16px); }
+  .agenda-cols > div { min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .agenda-cols > div::-webkit-scrollbar { display: none; }
+
+  /* ══════════════════ stránka Nastavení ══════════════════ */
+  .settings-grid {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: clamp(10px, 1.2vw, 16px); align-content: start;
+  }
+  .settings-grid::-webkit-scrollbar { display: none; }
+  .sect {
+    padding: clamp(12px, 1.3vw, 18px); border-radius: var(--r-lg);
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .sect h3 { margin: 0 0 clamp(9px, 1vw, 14px); font-size: clamp(13px, 1.25vw, 17px); font-weight: 700; }
+  .field { margin-bottom: clamp(10px, 1.1vw, 15px); }
+  .field label { display: block; font-size: clamp(10px, 1vw, 13px); font-weight: 620; color: var(--muted); margin-bottom: .4em; }
+  .field input, .field textarea {
+    width: 100%; padding: .7em .85em; min-height: 44px;
+    border-radius: 13px; background: var(--panel-solid);
+    border: 1px solid var(--line); color: var(--text);
+    font-size: clamp(12px, 1.15vw, 15px);
+  }
+  .field textarea { min-height: 76px; resize: vertical; }
+  .field-help { margin-top: .4em; font-size: clamp(9px, .92vw, 12px); color: var(--muted-2); line-height: 1.5; }
+  .switch-row { display: flex; align-items: center; gap: 1em; padding: .55em 0; }
+  .switch-copy { min-width: 0; }
+  .switch-copy strong { display: block; font-size: clamp(12px, 1.15vw, 15px); font-weight: 640; }
+  .switch-copy span { font-size: clamp(9px, .92vw, 12px); color: var(--muted-2); }
+  .switch {
+    margin-left: auto; flex: 0 0 auto;
+    width: 52px; height: 32px; border-radius: 999px; position: relative;
+    background: var(--panel-3); border: 1px solid var(--line);
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 24px; height: 24px; border-radius: 50%; background: var(--muted);
+    transition: transform .16s ease, background .16s ease;
+  }
+  .switch.on { background: rgba(103, 212, 255, .28); border-color: rgba(103, 212, 255, .4); }
+  .switch.on::after { transform: translateX(20px); background: var(--blue); }
+  .seg-3 { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px;
+           border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--line); }
+  .seg-3 button { border: 0; background: transparent; border-radius: 999px; padding: .5em; min-height: 38px;
+                  color: var(--muted); font-size: clamp(10px, 1vw, 13px); font-weight: 620; }
+  .seg-3 button.active { background: var(--panel-3); color: var(--text); }
+
+  /* ══════════════════ navigace ══════════════════ */
+  .nav {
+    border-radius: var(--r-xl); padding: 6px;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px;
+  }
+  .nav-btn {
+    border: 0; border-radius: var(--r-lg); background: transparent; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    font-size: clamp(9px, .95vw, 12px); font-weight: 620;
+  }
+  .nav-btn svg { font-size: clamp(17px, 1.7vw, 22px); }
+  .nav-btn.active { background: var(--panel-3); color: var(--text); }
+  .nav-btn.taphome {
+    color: #e9e0ff;
+    background: linear-gradient(145deg, rgba(132, 96, 255, .3), rgba(75, 94, 222, .25));
+    border: 1px solid rgba(187, 165, 255, .16);
+  }
+  :root[data-theme="light"] .nav-btn.taphome {
+    color: #4a2fa8;
+    background: linear-gradient(145deg, rgba(132, 96, 255, .16), rgba(75, 94, 222, .12));
+    border-color: rgba(107, 75, 196, .28);
+  }
+
+  /* ══════════════════ toast a dialog ══════════════════ */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(var(--nav-h) + 26px); transform: translateX(-50%);
+    padding: .7em 1.2em; border-radius: 999px;
+    background: var(--panel-solid); border: 1px solid var(--line); box-shadow: var(--shadow);
+    font-size: clamp(11px, 1.1vw, 15px); font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+    max-width: 80vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(3, 8, 18, .68);
+    display: none; place-items: center; padding: 24px; z-index: 20;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .backdrop.show { display: grid; }
+  .dialog {
+    width: min(460px, 100%); border-radius: var(--r-xl); padding: clamp(18px, 2vw, 26px);
+    background: var(--panel-solid); border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .dialog h2 { margin: 0 0 .5em; font-size: clamp(15px, 1.5vw, 20px); }
+  .dialog p { margin: 0 0 1.2em; font-size: clamp(12px, 1.2vw, 15px); color: var(--muted); line-height: 1.5; }
+  .dialog-actions { display: flex; gap: .6em; justify-content: flex-end; flex-wrap: wrap; }
+  .dialog.wide { width: min(540px, 100%); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; }
+  .form-row.one { grid-template-columns: 1fr; }
+  .chipset { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+  .chipset button {
+    padding: .6em .3em; min-height: 42px; border-radius: 12px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    font-size: clamp(11px, 1.05vw, 14px); font-weight: 620;
+  }
+  .chipset button.active { background: rgba(103, 212, 255, .16); border-color: rgba(103, 212, 255, .4); color: var(--blue); }
+  .form-err {
+    margin: 0 0 1em; padding: .6em .8em; border-radius: 12px;
+    background: rgba(255, 140, 155, .12); border: 1px solid rgba(255, 140, 155, .3);
+    color: var(--red); font-size: clamp(11px, 1.1vw, 14px);
+  }
+  .primary-btn {
+    display: inline-flex; align-items: center; gap: .45em;
+    padding: .6em 1.1em; border-radius: 999px; min-height: 42px;
+    background: var(--blue); border: 1px solid var(--blue); color: #04202e;
+    font-size: clamp(11px, 1.1vw, 15px); font-weight: 700;
+  }
+  .primary-btn[disabled] { opacity: .5; }
+  :root[data-theme="light"] .primary-btn { color: #fff; }
+
+  /* ══════════════════ portrét / úzko ══════════════════ */
+  @media (max-aspect-ratio: 1/1) {
+    .app.home {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto var(--nav-h);
+      grid-template-areas: "head" "prog" "side" "nav";
+      overflow-y: auto;
+    }
+    .app.sub { grid-template-columns: 1fr; grid-template-areas: "head" "body" "nav"; }
+    .agenda-cols { grid-template-columns: 1fr; }
+    .card.fill { flex: 0 0 auto; min-height: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app home" id="app">
+
+  <!-- ═════════════ hlavička ═════════════ -->
+  <header class="header glass">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/><path d="M9 21v-7h6v7"/>
+      </svg>
+    </div>
+    <div class="brand-copy">
+      <div class="date-day" id="dateDay">—</div>
+      <div class="date-rest" id="dateRest"></div>
+    </div>
+
+    <div class="header-right">
+      <span class="chip warn" id="statusChip" hidden>
+        <span class="chip-dot"></span><span id="statusText">Offline</span>
+      </span>
+      <button class="icon-btn" id="refreshBtn" type="button" title="Obnovit" aria-label="Obnovit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="fullscreenBtn" type="button" title="Celá obrazovka" aria-label="Celá obrazovka" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+      </button>
+      <div class="time-box">
+        <div class="time" id="timeLabel">--:--</div>
+        <div class="loc" id="locLabel">—</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═════════════ přehled ═════════════
+       Sloupce jsou přímo v .app gridu, ne ve .pages — jen tak může sloupec
+       s programem sáhnout až nahoru a hlavička zůstat nad tím druhým.
+       O poloze rozhodují grid-template-areas, ne pořadí v HTML. -->
+  <div class="col" id="progCol">
+          <article class="card glass fill" id="progCard">
+            <div class="card-head">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Program
+              </div>
+              <span class="count-pill" id="agendaCount">0</span>
+              <button class="icon-btn" id="addEventBtnOverview" type="button" title="Přidat událost" aria-label="Přidat událost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+            <div class="scroll" id="overviewAgenda"></div>
+          </article>
+
+          <article class="card glass waste" id="wasteTile" hidden>
+            <div class="waste-icon" id="wasteIcon">🗑️</div>
+            <div>
+              <div class="waste-when" id="wasteWhen">—</div>
+              <div class="waste-what" id="wasteWhat">—</div>
+            </div>
+            <div class="waste-next" id="wasteNext"></div>
+          </article>
+
+  </div>
+
+  <div class="col" id="sideCol">
+          <article class="card glass">
+            <div class="wx-top">
+              <div class="wx-symbol" id="wxSymbol">·</div>
+              <div style="min-width:0">
+                <div class="wx-temp" id="wxTemp">--°</div>
+                <div class="wx-desc" id="wxDesc">Načítám počasí…</div>
+              </div>
+              <div class="wx-facts">
+                <div class="place-tabs" id="wxPlaces" hidden></div>
+                <div>Pocitově <b id="wxFeels">--°</b></div>
+                <div>Vítr <b id="wxWind">--</b></div>
+                <div id="wxSunRow">Západ <b id="wxSunset">--</b></div>
+              </div>
+            </div>
+            <div class="wx-hint" id="wxHint" hidden></div>
+
+            <div class="strip-wrap">
+              <div class="strip-label">Po hodinách <em id="wxHoursSpan"></em></div>
+              <div class="strip hours" id="wxHours"></div>
+            </div>
+
+            <div class="strip-wrap">
+              <div class="strip-label">Výhled na týden <em id="wxDaysSpan"></em></div>
+              <div class="strip days" id="wxDays"></div>
+            </div>
+          </article>
+
+          <article class="card glass fill">
+            <div class="card-head">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Rodinné seznamy
+              </div>
+            </div>
+            <div class="segmented" role="tablist">
+              <button class="seg-btn active" type="button" data-list="shopping" role="tab">Nákup <span class="n" id="nShopping"></span></button>
+              <button class="seg-btn" type="button" data-list="tasks" role="tab">Úkoly <span class="n" id="nTasks"></span></button>
+            </div>
+            <div class="scroll" id="listView"></div>
+            <div class="src-row">
+              <span id="syncLabel">Zdroj: Apple Poznámky</span>
+              <button class="soft-btn accent" id="syncBtn" type="button" style="margin-left:auto">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+                Synchronizovat
+              </button>
+            </div>
+          </article>
+  </div>
+
+  <!-- ═════════════ ostatní stránky ═════════════ -->
+  <main class="pages">
+
+    <!-- ── Kalendář ── -->
+    <section class="page" data-page="calendar">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Rodinný kalendář
+          </div>
+          <div class="page-actions">
+            <span class="chip" id="legendChip"></span>
+            <button class="soft-btn accent" id="addEventBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Přidat událost
+            </button>
+          </div>
+        </div>
+        <div class="agenda-cols">
+          <div id="calCol1"></div>
+          <div id="calCol2"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ── Seznamy ── -->
+    <section class="page" data-page="lists">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            Úkoly a nákup
+          </div>
+          <div class="page-actions">
+            <span class="chip" id="syncChip">—</span>
+            <button class="soft-btn accent" id="syncBtn2" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+              Synchronizovat
+            </button>
+          </div>
+        </div>
+        <div class="agenda-cols">
+          <div>
+            <div class="card-head"><div class="card-title">🛒 Nákup</div><span class="count-pill" id="cShopping">0</span></div>
+            <div id="bigShopping"></div>
+          </div>
+          <div>
+            <div class="card-head"><div class="card-title">✅ Úkoly</div><span class="count-pill" id="cTasks">0</span></div>
+            <div id="bigTasks"></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ── Nastavení ── -->
+    <section class="page" data-page="settings">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.3h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.03H5.3v-3h.14A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06A1.7 1.7 0 0 0 10.66 6a1.7 1.7 0 0 0 1.03-1.56V4.3h3v.14A1.7 1.7 0 0 0 15.72 6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19.38 9.66a1.7 1.7 0 0 0 1.56 1.03h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+            Nastavení tabule
+          </div>
+          <div class="page-actions">
+            <button class="soft-btn accent" id="saveBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Uložit
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <section class="sect">
+            <h3>Datové API</h3>
+            <div class="field">
+              <label for="fApi">Apps Script /exec URL</label>
+              <textarea id="fApi" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false"></textarea>
+              <div class="field-help">Bez tohoto pole běží tabule na ukázkových datech. Postup nasazení je v README.</div>
+            </div>
+            <div class="field">
+              <label for="fToken">Token</label>
+              <input id="fToken" type="text" placeholder="stejný jako v Code.gs" spellcheck="false" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="fDays">Kolik dní kalendáře dopředu</label>
+              <input id="fDays" type="number" min="2" max="45" step="1">
+            </div>
+          </section>
+
+          <section class="sect">
+            <h3>Místo a počasí</h3>
+            <div class="field">
+              <label for="fPlace">Místo</label>
+              <input id="fPlace" type="text" placeholder="název obce nebo města">
+              <div class="field-help">Po uložení se místo vyhledá a souřadnice dopočítají. Žádný API klíč není potřeba.</div>
+            </div>
+            <div class="field">
+              <label for="fPlace2">Druhé místo <span style="font-weight:400;color:var(--muted-2)">(nepovinné)</span></label>
+              <input id="fPlace2" type="text" placeholder="např. Praha">
+              <div class="field-help">Když vyplníš, objeví se v kartě počasí přepínač mezi oběma místy. Obě se načtou jedním dotazem, takže to nic nezdrží.</div>
+            </div>
+            <div class="field">
+              <label for="fFamily">Název tabule</label>
+              <input id="fFamily" type="text" maxlength="50" placeholder="Rodinná tabule">
+            </div>
+          </section>
+
+          <section class="sect">
+            <h3>Seznamy z Apple Poznámek</h3>
+            <div class="field">
+              <label for="fShortcut">Název iOS Zkratky</label>
+              <input id="fShortcut" type="text" placeholder="Tabule sync">
+              <div class="field-help">Tlačítko „Synchronizovat“ spustí tuhle Zkratku na iPadu. Zkratka přečte poznámky a pošle je do Apps Scriptu — postup v README.</div>
+            </div>
+          </section>
+
+          <section class="sect">
+            <h3>Vzhled</h3>
+            <div class="field">
+              <label>Téma</label>
+              <div class="seg-3" id="themeSeg">
+                <button type="button" data-theme="auto">Podle času</button>
+                <button type="button" data-theme="dark">Tmavé</button>
+                <button type="button" data-theme="light">Světlé</button>
+              </div>
+              <div class="field-help">„Podle času“ přepne na světlé od 7:00 do 19:00. Na zdi v kuchyni to bývá příjemnější než pevná volba.</div>
+            </div>
+            <div class="switch-row">
+              <div class="switch-copy"><strong>Skrývat proběhlé</strong><span>Dnešní hotové události zmizí z přehledu</span></div>
+              <button class="switch" id="swHidePast" type="button" role="switch"></button>
+            </div>
+          </section>
+
+          <section class="sect">
+            <h3>TapHome</h3>
+            <div class="field">
+              <label for="fTapHome">Název Zkratky nebo odkaz</label>
+              <input id="fTapHome" type="text" placeholder="Otevri TapHome" spellcheck="false">
+              <div class="field-help">Nejspolehlivější cesta: v aplikaci Zkratky vytvoř zkratku s jedinou akcí <b>Otevřít aplikaci → TapHome</b> a její název napiš sem. Tlačítko v liště ji spustí. Když sem dáš text s <code>://</code>, otevře se jako odkaz — to je pro případ, že bys měl ověřené URL schéma. Ovládat dům se pořád nejlíp dá ve Split View, tabule vlevo a TapHome vpravo.</div>
+            </div>
+          </section>
+
+          <section class="sect">
+            <h3>Reset</h3>
+            <div class="page-actions" style="margin:0">
+              <button class="danger-btn" id="resetBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                Smazat nastavení tabule
+              </button>
+            </div>
+            <div class="field-help" style="margin-top:10px">Smaže jen místní nastavení tohoto iPadu (URL, token, místo). Data v kalendáři ani v poznámkách se nedotkne.</div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- ═════════════ navigace ═════════════ -->
+  <nav class="nav glass" aria-label="Hlavní navigace">
+    <button class="nav-btn active" type="button" data-go="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+      <span>Přehled</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Kalendář</span>
+    </button>
+    <button class="nav-btn taphome" id="taphomeBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/><path d="M9 21v-7h6v7"/></svg>
+      <span>TapHome ↗</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="lists">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      <span>Seznamy</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.3h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.03H5.3v-3h.14A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06A1.7 1.7 0 0 0 10.66 6a1.7 1.7 0 0 0 1.03-1.56V4.3h3v.14A1.7 1.7 0 0 0 15.72 6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19.38 9.66a1.7 1.7 0 0 0 1.56 1.03h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+      <span>Nastavení</span>
+    </button>
+  </nav>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div class="backdrop" id="confirmBox" role="dialog" aria-modal="true">
+  <div class="dialog">
+    <h2 id="confirmTitle">Opravdu?</h2>
+    <p id="confirmText"></p>
+    <div class="dialog-actions">
+      <button class="soft-btn" id="confirmNo" type="button">Zrušit</button>
+      <button class="danger-btn" id="confirmYes" type="button">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<div class="backdrop" id="eventBox" role="dialog" aria-modal="true" aria-labelledby="eventBoxTitle">
+  <form class="dialog wide" id="eventForm">
+    <h2 id="eventBoxTitle">Nová událost</h2>
+    <div class="form-err" id="eventErr" hidden></div>
+
+    <div class="field">
+      <label for="evTitle">Co</label>
+      <input id="evTitle" type="text" maxlength="120" required autocomplete="off"
+             placeholder="např. Plavání – malý">
+    </div>
+
+    <div class="field">
+      <label>Kdy</label>
+      <div class="chipset" id="evWhenChips">
+        <button type="button" data-off="0">Dnes</button>
+        <button type="button" data-off="1">Zítra</button>
+        <button type="button" data-off="2" id="evChip2">—</button>
+        <button type="button" data-off="3" id="evChip3">—</button>
+        <button type="button" data-off="-1">Jiné…</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="evDate">Datum</label>
+        <input id="evDate" type="date" required>
+      </div>
+      <div class="field">
+        <label for="evTime">Začátek</label>
+        <input id="evTime" type="time" step="300">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Trvání</label>
+      <div class="chipset" id="evDurChips">
+        <button type="button" data-min="30">30 min</button>
+        <button type="button" data-min="60">1 h</button>
+        <button type="button" data-min="90">1,5 h</button>
+        <button type="button" data-min="120">2 h</button>
+        <button type="button" data-min="0">Celý den</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="evLoc">Kde <span style="font-weight:400;color:var(--muted-2)">(nepovinné)</span></label>
+      <input id="evLoc" type="text" maxlength="120" autocomplete="off" placeholder="např. Sokolovna">
+    </div>
+
+    <p id="evTarget" style="margin-bottom:1em"></p>
+
+    <div class="dialog-actions">
+      <button class="soft-btn" type="button" id="evCancel">Zrušit</button>
+      <button class="primary-btn" type="submit" id="evSave">Přidat do kalendáře</button>
+    </div>
+  </form>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Rodinná tabule
+   Data: Google Kalendář a Apple Poznámky přes Apps Script, počasí z Open-Meteo.
+   Nastavení se zadává v UI a drží se v localStorage tohoto iPadu, takže
+   na hostingu není žádný token.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+var DEFAULTS = {
+  api: "", token: "", days: 14,
+  // Neutrální výchozí bod. Svoje místo si zadáš v Nastavení, souřadnice
+  // dopočítá geokódovací API — v souborech tak není nic o tvém bydlišti.
+  place: "Praha", lat: 50.0755, lon: 14.4378,
+  place2: "", lat2: null, lon2: null,     // nepovinná druhá lokalita
+  family: "Rodinná tabule",
+  shortcut: "Tabule sync",
+  taphome: "",
+  theme: "auto",
+  hidePast: false
+};
+
+var NEEDS_GEOCODE = false;
+var SETUP_FROM_URL = false;
+
+var CFG = load();
+var DATA = { events: [], lists: { tasks: [], shopping: [] }, note: "", syncedAt: null, demo: true };
+var WX = null;        // pole předpovědí, index podle places()
+var wxIndex = 0;      // která lokalita je zobrazená
+var OK = { data: null, wx: null };
+var LOADING = false;  // první načtení dat, ať prázdno neříká „žádné události“
+var activeList = "shopping";
+var lastDayKey = null;
+
+/**
+ * Nastavení se drží v localStorage tohoto iPadu. Dá se ale předat i v adrese,
+ * aby se dlouhá /exec URL a token nemusely ťukat na tabletu — postav si odkaz
+ * na Macu a pošli si ho AirDropem:
+ *
+ *   .../rodinna-tabule/?api=https://script.google.com/…/exec&token=TAJNY&place=Praha
+ *   .../rodinna-tabule/?reset=1        … zapomene uložené nastavení
+ *
+ * Po převzetí se query z adresy smaže, aby token nezůstal viditelný v adresním
+ * řádku, v historii ani v případné záložce na ploše.
+ */
+function load() {
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem("tabule.cfg") || "{}"); } catch (e) {}
+  var cfg = Object.assign({}, DEFAULTS, saved);
+
+  var q = new URLSearchParams(location.search), touched = false;
+
+  if (q.has("reset")) {
+    try { localStorage.removeItem("tabule.cfg"); } catch (e) {}
+    cfg = Object.assign({}, DEFAULTS);
+    touched = true;
+  }
+
+  ["api", "token", "place", "place2", "family", "shortcut", "taphome"].forEach(function (k) {
+    if (!q.has(k)) return;
+    cfg[k] = q.get(k).trim();
+    touched = true;
+  });
+
+  if (q.has("days")) {
+    cfg.days = Math.min(45, Math.max(2, parseInt(q.get("days"), 10) || DEFAULTS.days));
+    touched = true;
+  }
+
+  if (touched) {
+    if (q.has("place") || q.has("place2")) NEEDS_GEOCODE = true;
+    SETUP_FROM_URL = true;
+    try { localStorage.setItem("tabule.cfg", JSON.stringify(cfg)); } catch (e) {}
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  }
+
+  return cfg;
+}
+function save() {
+  try { localStorage.setItem("tabule.cfg", JSON.stringify(CFG)); } catch (e) {}
+}
+function cache(key, val) {
+  try {
+    if (val === undefined) { var r = localStorage.getItem("tabule." + key); return r ? JSON.parse(r) : null; }
+    localStorage.setItem("tabule." + key, JSON.stringify(val));
+  } catch (e) {}
+  return null;
+}
+
+/* ─────────────────────────────  pomůcky  ───────────────────────────── */
+
+var $ = function (s) { return document.querySelector(s); };
+var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+function startOfDay(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function dayKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function hhmm(d) { return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0"); }
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+var fmtDayFull = new Intl.DateTimeFormat("cs-CZ", { weekday: "long", day: "numeric", month: "long" });
+var fmtWeekday = new Intl.DateTimeFormat("cs-CZ", { weekday: "long" });
+var fmtDayMonth = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "long" });
+var fmtDayShort = new Intl.DateTimeFormat("cs-CZ", { weekday: "long", day: "numeric", month: "numeric" });
+var fmtWeekShort = new Intl.DateTimeFormat("cs-CZ", { weekday: "short" });
+
+function toast(msg) {
+  var t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { t.classList.remove("show"); }, 3200);
+}
+
+function confirmBox(title, text, onYes) {
+  $("#confirmTitle").textContent = title;
+  $("#confirmText").textContent = text;
+  $("#confirmBox").classList.add("show");
+  $("#confirmYes").onclick = function () { $("#confirmBox").classList.remove("show"); onYes(); };
+  $("#confirmNo").onclick = function () { $("#confirmBox").classList.remove("show"); };
+}
+
+/* ─────────────────────────  státní svátky ČR  ─────────────────────── */
+
+function easterSunday(y) {
+  var a = y % 19, b = Math.floor(y / 100), c = y % 100,
+      d = Math.floor(b / 4), e = b % 4,
+      f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3),
+      h = (19 * a + b - d - g + 15) % 30,
+      i = Math.floor(c / 4), k = c % 4,
+      l = (32 + 2 * e + 2 * i - h - k) % 7,
+      m = Math.floor((a + 11 * h + 22 * l) / 451),
+      month = Math.floor((h + l - 7 * m + 114) / 31),
+      day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(y, month - 1, day);
+}
+var holCache = {};
+function holidaysFor(year) {
+  if (holCache[year]) return holCache[year];
+  var map = {};
+  [["01-01", "Nový rok"], ["05-01", "Svátek práce"], ["05-08", "Den vítězství"],
+   ["07-05", "Cyril a Metoděj"], ["07-06", "Jan Hus"], ["09-28", "Den české státnosti"],
+   ["10-28", "Vznik Československa"], ["11-17", "Den boje za svobodu"],
+   ["12-24", "Štědrý den"], ["12-25", "1. svátek vánoční"], ["12-26", "2. svátek vánoční"]
+  ].forEach(function (h) { map[year + "-" + h[0]] = h[1]; });
+  var es = easterSunday(year);
+  map[dayKey(new Date(es.getFullYear(), es.getMonth(), es.getDate() - 2))] = "Velký pátek";
+  map[dayKey(new Date(es.getFullYear(), es.getMonth(), es.getDate() + 1))] = "Velikonoční pondělí";
+  holCache[year] = map;
+  return map;
+}
+function holidayName(d) { return holidaysFor(d.getFullYear())[dayKey(d)] || null; }
+
+/* ─────────────────────────────  počasí  ───────────────────────────── */
+
+var WMO = {
+  0:  ["Jasno", "☀️", "🌙"],           1:  ["Skoro jasno", "🌤️", "🌙"],
+  2:  ["Polojasno", "⛅️", "☁️"],       3:  ["Zataženo", "☁️", "☁️"],
+  45: ["Mlha", "🌫️"],                 48: ["Mrznoucí mlha", "🌫️"],
+  51: ["Mrholení", "🌦️"],             53: ["Mrholení", "🌦️"],            55: ["Silné mrholení", "🌧️"],
+  56: ["Mrznoucí mrholení", "🌧️"],    57: ["Mrznoucí mrholení", "🌧️"],
+  61: ["Slabý déšť", "🌦️"],           63: ["Déšť", "🌧️"],                65: ["Silný déšť", "🌧️"],
+  66: ["Mrznoucí déšť", "🌧️"],        67: ["Mrznoucí déšť", "🌧️"],
+  71: ["Slabé sněžení", "🌨️"],        73: ["Sněžení", "🌨️"],             75: ["Silné sněžení", "❄️"],
+  77: ["Sněhové krupky", "🌨️"],
+  80: ["Přeháňky", "🌦️"],             81: ["Přeháňky", "🌧️"],            82: ["Silné přeháňky", "🌧️"],
+  85: ["Sněhové přeháňky", "🌨️"],     86: ["Sněhové přeháňky", "❄️"],
+  95: ["Bouřky", "⛈️"],               96: ["Bouřky s krupobitím", "⛈️"],  99: ["Bouřky s krupobitím", "⛈️"]
+};
+function wmo(code, isDay) {
+  var w = WMO[code] || ["—", "·"];
+  return { desc: w[0], icon: (isDay === 0 && w[2]) ? w[2] : w[1] };
+}
+
+/** Nakonfigurovaná místa. Druhé je nepovinné. */
+function places() {
+  var out = [{ name: CFG.place, lat: CFG.lat, lon: CFG.lon }];
+  if (CFG.place2 && CFG.lat2 != null && CFG.lon2 != null) {
+    out.push({ name: CFG.place2, lat: CFG.lat2, lon: CFG.lon2 });
+  }
+  return out;
+}
+
+/**
+ * Open-Meteo umí víc lokalit v jednom dotazu — souřadnice se oddělí čárkou
+ * a odpověď přijde jako pole. U jedné lokality vrací objekt, tak to
+ * normalizujeme na pole vždy.
+ */
+function fetchWeather() {
+  var ps = places(),
+      u = new URL("https://api.open-meteo.com/v1/forecast");
+  u.search = new URLSearchParams({
+    latitude: ps.map(function (p) { return p.lat; }).join(","),
+    longitude: ps.map(function (p) { return p.lon; }).join(","),
+    current: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day",
+    hourly: "temperature_2m,weather_code,precipitation_probability,precipitation,is_day",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset",
+    timezone: "auto", forecast_days: 7
+  }).toString();
+  return fetch(u.toString(), { cache: "no-store" }).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function (j) {
+    return Array.isArray(j) ? j : [j];
+  });
+}
+
+function geocode(name) {
+  var u = "https://geocoding-api.open-meteo.com/v1/search?count=1&language=cs&format=json&countryCode=CZ&name=" +
+          encodeURIComponent(name);
+  return fetch(u, { cache: "no-store" }).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function (j) {
+    if (!j.results || !j.results.length) throw new Error("nenalezeno");
+    return j.results[0];
+  });
+}
+
+function currentHourIndex(h) {
+  var now = Date.now();
+  for (var i = 0; i < (h.time || []).length; i++) {
+    if (new Date(h.time[i]).getTime() + 36e5 > now) return i;
+  }
+  return 0;
+}
+
+/** Nejbližších 12 h: první hodina se srážkami → věta na zeď. */
+function rainHint(h) {
+  if (!h || !h.time) return "";
+  var now = Date.now(), horizon = now + 12 * 36e5, SNOW = [71, 73, 75, 77, 85, 86];
+  for (var i = 0; i < h.time.length; i++) {
+    var t = new Date(h.time[i]).getTime();
+    if (t + 36e5 < now || t > horizon) continue;
+    var p = h.precipitation_probability ? h.precipitation_probability[i] : 0,
+        mm = h.precipitation ? h.precipitation[i] : 0;
+    // buď je to pravděpodobné, nebo je toho hodně – 10% mrholení nemá cenu hlásit
+    if (p < 50 && !(mm >= 0.5 && p >= 25)) continue;
+    var snow = h.weather_code && SNOW.indexOf(h.weather_code[i]) >= 0,
+        soon = t - now < 2 * 36e5,
+        when = soon ? "během hodiny" : "kolem " + new Date(t).getHours() + ":00";
+    return (snow ? "Sněžení " : "Srážky ") + when + (p >= 30 ? " (" + p + " %)" : "") +
+           (snow ? " · pozor na cestách" : " · vezmi pláštěnku");
+  }
+  return "";
+}
+
+function renderPlaceTabs() {
+  var ps = places(), el = $("#wxPlaces");
+  el.hidden = ps.length < 2;
+  if (el.hidden) { el.innerHTML = ""; return; }
+
+  el.innerHTML = ps.map(function (p, i) {
+    return '<button type="button" data-i="' + i + '" class="' + (i === wxIndex ? "active" : "") +
+           '">' + esc(p.name) + "</button>";
+  }).join("");
+
+  $$("#wxPlaces button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      wxIndex = Number(b.dataset.i);
+      renderWeather();
+    });
+  });
+}
+
+function renderWeather() {
+  renderPlaceTabs();
+
+  var list = WX || [];
+  if (wxIndex >= list.length) wxIndex = 0;
+
+  var w = list[wxIndex];
+  if (!w || !w.current) return;
+
+  // v hlavičce ať svítí místo, které je právě zobrazené
+  var ps = places();
+  if (ps[wxIndex]) $("#locLabel").textContent = ps[wxIndex].name;
+
+  var c = w.current, d = w.daily || {}, h = w.hourly || {}, s = wmo(c.weather_code, c.is_day);
+
+  $("#wxSymbol").textContent = s.icon;
+  $("#wxTemp").textContent = Math.round(c.temperature_2m) + "°";
+  $("#wxDesc").textContent = s.desc;
+  $("#wxFeels").textContent = Math.round(c.apparent_temperature) + "°";
+  $("#wxWind").textContent = Math.round(c.wind_speed_10m) + " km/h";
+
+  // po západu slunce je užitečnější východ než západ
+  if (d.sunset && d.sunrise) {
+    var sunset = new Date(d.sunset[0]);
+    if (Date.now() > sunset.getTime() && d.sunrise[1]) {
+      $("#wxSunRow").innerHTML = 'Východ <b>' + hhmm(new Date(d.sunrise[1])) + "</b>";
+    } else {
+      $("#wxSunRow").innerHTML = 'Západ <b>' + hhmm(sunset) + "</b>";
+    }
+  }
+
+  var hint = rainHint(h);
+  $("#wxHint").hidden = !hint;
+  $("#wxHint").textContent = hint;
+
+  // hodinový pruh: 8 sloupců po dvou hodinách = zbytek dne a večer
+  var i0 = currentHourIndex(h), out = "", lastHour = null;
+  for (var n = 0; n < 8; n++) {
+    var i = i0 + n * 2;
+    if (!h.time || i >= h.time.length) break;
+    var dt = new Date(h.time[i]),
+        ic = wmo(h.weather_code[i], h.is_day ? h.is_day[i] : 1).icon,
+        p = h.precipitation_probability ? h.precipitation_probability[i] : null;
+    lastHour = dt;
+    out += '<div class="sd' + (n === 0 ? " now" : "") + '">' +
+             '<div class="sd-d">' + (n === 0 ? "teď" : dt.getHours() + ":00") + "</div>" +
+             '<div class="sd-i">' + ic + "</div>" +
+             '<div class="sd-t">' + Math.round(h.temperature_2m[i]) + "°</div>" +
+             '<div class="sd-p">' + (p != null && p >= 20 ? p + " %" : "") + "</div>" +
+           "</div>";
+  }
+  $("#wxHours").innerHTML = out;
+  $("#wxHoursSpan").textContent = lastHour
+    ? "do " + lastHour.getHours() + ":00" + (lastHour.getDate() !== new Date().getDate() ? " (zítra)" : "")
+    : "";
+
+  // Denní pruh dostane rozsahový ukazatel: poloha a délka pruhu říkají, kde
+  // ten den leží v rozpětí teplot celého týdne. Odliší to výhled od hodin
+  // na první pohled a řekne to víc než dvě čísla.
+  var hi = d.temperature_2m_max || [], lo = d.temperature_2m_min || [],
+      wmin = Math.min.apply(null, lo), wmax = Math.max.apply(null, hi),
+      span = Math.max(1, wmax - wmin);
+
+  out = "";
+  (d.time || []).forEach(function (iso, i) {
+    var dt = new Date(iso + "T12:00:00"),
+        ic = wmo(d.weather_code[i], 1).icon,
+        p = d.precipitation_probability_max ? d.precipitation_probability_max[i] : null,
+        left = ((lo[i] - wmin) / span) * 100,
+        width = Math.max(8, ((hi[i] - lo[i]) / span) * 100);
+    if (left + width > 100) left = Math.max(0, 100 - width);
+
+    out += '<div class="sd' + (i === 0 ? " now" : "") + '">' +
+             '<div class="sd-d">' + (i === 0 ? "dnes" : fmtWeekShort.format(dt).replace(".", "")) + "</div>" +
+             '<div class="sd-i">' + ic + "</div>" +
+             '<div class="sd-t">' + Math.round(hi[i]) + "°" +
+               ' <span class="lo">' + Math.round(lo[i]) + "°</span></div>" +
+             '<div class="sd-range"><span style="left:' + left.toFixed(1) + '%;width:' + width.toFixed(1) + '%"></span></div>' +
+             '<div class="sd-p">' + (p != null && p >= 20 ? p + " %" : "") + "</div>" +
+           "</div>";
+  });
+  $("#wxDays").innerHTML = out;
+  $("#wxDaysSpan").textContent = isFinite(wmin) && isFinite(wmax)
+    ? Math.round(wmin) + "° až " + Math.round(wmax) + "°"
+    : "";
+}
+
+/* ────────────────────────────  kalendář  ──────────────────────────── */
+
+function demoData() {
+  var t = startOfDay(new Date()), D = 864e5;
+  function at(off, h, m, dur) {
+    return [new Date(t.getTime() + off * D + h * 36e5 + (m || 0) * 6e4).toISOString(),
+            new Date(t.getTime() + off * D + (h + (dur || 1)) * 36e5 + (m || 0) * 6e4).toISOString()];
+  }
+  function ad(off) {
+    return [new Date(t.getTime() + off * D).toISOString(), new Date(t.getTime() + (off + 1) * D).toISOString()];
+  }
+  var M = { label: "Děti", color: "#67d4ff" },
+      Z = { label: "Žena", color: "#ff8c9b" },
+      R = { label: "Rodina", color: "#7be0a8" };
+  function ev(w, title, tm, loc, allDay) {
+    return { title: title, start: tm[0], end: tm[1], allDay: !!allDay,
+             location: loc || "", label: w.label, color: w.color };
+  }
+  return {
+    demo: true,
+    syncedAt: new Date(Date.now() - 22 * 6e4).toISOString(),
+    note: "Večer připravit věci dětem na zítřek.",
+    events: [
+      ev(R, "🌿 Bioodpad", ad(0), "", true),
+      ev(Z, "Zubař", at(0, 10, 0, 1)),
+      ev(M, "Plavání – malý", at(0, 16, 30, 1), "Bazén"),
+      ev(Z, "Kadeřník", at(0, 18, 0, 2)),
+      ev(Z, "Rodičovská schůzka", at(1, 17, 0, 1), "Škola"),
+      ev(M, "Judo – malý", at(2, 15, 0, 1), "Sokolovna"),
+      ev(R, "🗑️ Směsný odpad", ad(4), "", true),
+      ev(R, "Návštěva babičky", at(5, 14, 0, 4)),
+      ev(R, "♻️ Papír a plast", ad(8), "", true)
+    ],
+    lists: {
+      shopping: [{ label: "mléko", done: false }, { label: "pečivo", done: false },
+                 { label: "rajčata", done: false }, { label: "ovoce", done: true }],
+      tasks: [{ label: "Vyzvednout balík", done: false }, { label: "Zalít zahradu", done: false },
+              { label: "Připravit tašky dětem", done: true }]
+    }
+  };
+}
+
+function jsonp(url) {
+  return new Promise(function (resolve, reject) {
+    var cb = "__tcb" + Math.floor(Math.random() * 1e9),
+        s = document.createElement("script"),
+        to = setTimeout(function () { done(); reject(new Error("JSONP timeout")); }, 15000);
+    function done() { clearTimeout(to); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); }
+    window[cb] = function (d) { done(); resolve(d); };
+    s.onerror = function () { done(); reject(new Error("JSONP error")); };
+    s.src = url + "&callback=" + cb;
+    document.head.appendChild(s);
+  });
+}
+
+/**
+ * Jediná cesta k Apps Scriptu. Apps Script odpovídá přes 302 na
+ * googleusercontent.com; kdyby to Safari odmítlo, spadneme na JSONP,
+ * kde CORS neexistuje. Používá se i pro zakládání události.
+ */
+function apiCall(params) {
+  if (!CFG.api) return Promise.reject(new Error("API není nastavené"));
+
+  var q = new URLSearchParams(Object.assign({ token: CFG.token }, params)),
+      url = CFG.api + (CFG.api.indexOf("?") < 0 ? "?" : "&") + q.toString();
+
+  return fetch(url, { cache: "no-store", redirect: "follow" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .catch(function () { return jsonp(url); })
+    .then(function (d) {
+      if (d && d.error) throw new Error(d.error);
+      return d;
+    });
+}
+
+function fetchData() {
+  if (!CFG.api) return Promise.resolve(demoData());
+  return apiCall({ days: CFG.days }).then(function (d) { d.demo = false; return d; });
+}
+
+/** Rozpadne události na jednotlivé dny (dovolené a víceden svozy). */
+function groupByDay(events, days) {
+  var today = startOfDay(new Date()),
+      last = new Date(today.getTime() + (days - 1) * 864e5),
+      byDay = {};
+
+  (events || []).forEach(function (e) {
+    var s = new Date(e.start),
+        en = new Date(e.end || e.start),
+        endInc = new Date(Math.max(s.getTime(), en.getTime() - 1)),  // konec je exkluzivní
+        cur = startOfDay(s < today ? today : s),
+        stop = startOfDay(endInc),
+        guard = 0;
+    if (stop > last) stop = startOfDay(last);
+    while (cur <= stop && guard++ < 60) {
+      var k = dayKey(cur);
+      (byDay[k] = byDay[k] || []).push({
+        ev: e, first: dayKey(cur) === dayKey(s), lastDay: dayKey(cur) === dayKey(endInc)
+      });
+      cur = new Date(cur.getTime() + 864e5);
+    }
+  });
+
+  var out = [];
+  for (var i = 0; i < days; i++) {
+    var d = new Date(today.getTime() + i * 864e5), items = byDay[dayKey(d)];
+    if (!items && i > 1) continue;
+    (items || []).sort(function (a, b) {
+      if (a.ev.allDay !== b.ev.allDay) return a.ev.allDay ? -1 : 1;
+      return new Date(a.ev.start) - new Date(b.ev.start);
+    });
+    out.push({ date: d, idx: i, items: items || [] });
+  }
+  return out;
+}
+
+function whenLabel(it) {
+  var e = it.ev, s = new Date(e.start), en = new Date(e.end || e.start);
+  if (e.allDay) return it.first ? "celý den" : "pokrač.";
+  if (!it.first) return it.lastDay ? "do " + hhmm(en) : "celý den";
+  if (en - s > 0 && dayKey(s) === dayKey(en)) return hhmm(s) + "<small>" + hhmm(en) + "</small>";
+  return hhmm(s);
+}
+
+function isPast(it) {
+  var e = it.ev;
+  if (e.allDay) return false;
+  return new Date(e.end || e.start) < new Date();
+}
+
+function evHtml(it, isNext) {
+  var e = it.ev, cls = "ev" + (isNext ? " next" : "") + (isPast(it) ? " past" : "");
+  return '<div class="' + cls + '">' +
+           '<div class="ev-time">' + whenLabel(it) + "</div>" +
+           '<div class="ev-bar" style="background:' + esc(e.color || "#888") + '"></div>' +
+           '<div class="ev-body">' +
+             '<div class="ev-title">' + esc(e.title) + "</div>" +
+             (e.location ? '<div class="ev-meta">' + esc(e.location) + "</div>" : "") +
+           "</div>" +
+           '<div class="ev-who">' + esc(e.label || "") + "</div>" +
+         "</div>";
+}
+
+/** Nejbližší budoucí událost — jediná, kterou zvýrazníme. */
+function findNext(groups) {
+  var now = new Date();
+  for (var g = 0; g < groups.length; g++) {
+    for (var i = 0; i < groups[g].items.length; i++) {
+      var it = groups[g].items[i];
+      if (it.ev.allDay) continue;
+      if (new Date(it.ev.start) > now) return it;
+    }
+  }
+  return null;
+}
+
+function dayHeader(g) {
+  var hol = holidayName(g.date),
+      name = g.idx === 0 ? "Dnes" : g.idx === 1 ? "Zítra" : cap(fmtDayShort.format(g.date)),
+      extra = g.idx < 2 ? fmtDayFull.format(g.date) : "";
+  return '<div class="day-sep"><b>' + name + "</b>" +
+           (extra ? "<span>" + esc(extra) + "</span>" : "") +
+           (hol ? '<span class="hol">' + esc(hol) + "</span>" : "") +
+         "</div>";
+}
+
+/** Kolik dní ukázat v přehledu. Dnes a zítra vždy, dál jen dny s událostmi,
+ *  takže karta se naplní programem a nezůstává poloprázdná. */
+var OVERVIEW_DAYS = 7;
+
+/** Kolik různých kalendářů je v datech — podle toho má smysl štítek se jménem. */
+function calendarCount() {
+  var seen = {}, n = 0;
+  (DATA.events || []).forEach(function (e) {
+    if (e.label && !seen[e.label]) { seen[e.label] = 1; n++; }
+  });
+  return n;
+}
+
+function renderOverviewAgenda() {
+  var groups = groupByDay(DATA.events, OVERVIEW_DAYS),
+      next = findNext(groupByDay(DATA.events, CFG.days)),
+      html = "", count = 0;
+
+  groups.forEach(function (g) {
+    var items = g.items;
+    if (CFG.hidePast) items = items.filter(function (it) { return !isPast(it); });
+    html += dayHeader(g);
+    if (!items.length) {
+      html += '<div class="empty">Nic v plánu</div>';
+    } else {
+      items.forEach(function (it) {
+        html += evHtml(it, next && it.ev === next.ev && it.first);
+        count++;
+      });
+    }
+  });
+
+  var el = $("#overviewAgenda");
+  el.innerHTML = html || '<div class="empty">' +
+    (LOADING ? "Načítám program…" : "Žádné události") + "</div>";
+  $("#agendaCount").textContent = count;
+
+  el.classList.toggle("one-cal", calendarCount() <= 1);
+
+  // po překreslení: doskrolovat na nejbližší událost a ukázat, že to pokračuje
+  requestAnimationFrame(function () {
+    var nx = el.querySelector(".ev.next");
+    if (nx) {
+      var cr = el.getBoundingClientRect(), er = nx.getBoundingClientRect();
+      if (er.bottom > cr.bottom) el.scrollTop += er.top - cr.top - 8;
+    }
+    $("#progCard").classList.toggle("more", el.scrollHeight > el.clientHeight + 2);
+  });
+}
+
+function renderCalendarPage() {
+  var groups = groupByDay(DATA.events, CFG.days),
+      next = findNext(groups);
+
+  // Rozdělit sloupce podle obsahu, ne podle počtu dní – jinak je jeden
+  // přeplněný a druhý poloprázdný. Hlavička dne váží asi jako 1,6 události.
+  var weight = groups.map(function (g) { return 1.6 + g.items.length; }),
+      total = weight.reduce(function (a, b) { return a + b; }, 0),
+      cut = 0, acc = 0;
+  for (var i = 0; i < groups.length; i++) {
+    acc += weight[i];
+    cut = i + 1;
+    if (acc >= total / 2) break;
+  }
+  var cols = [groups.slice(0, cut), groups.slice(cut)];
+
+  [1, 2].forEach(function (n) {
+    var html = "";
+    cols[n - 1].forEach(function (g) {
+      html += dayHeader(g);
+      if (!g.items.length) html += '<div class="empty">Nic v plánu</div>';
+      g.items.forEach(function (it) { html += evHtml(it, next && it.ev === next.ev && it.first); });
+    });
+    $("#calCol" + n).innerHTML = html || '<div class="empty">Žádné události</div>';
+  });
+
+  var seen = {}, leg = [];
+  (DATA.events || []).forEach(function (e) {
+    if (!e.label || seen[e.label]) return;
+    seen[e.label] = 1;
+    leg.push('<span style="color:' + esc(e.color) + '">●</span> ' + esc(e.label));
+  });
+  $("#legendChip").innerHTML = leg.join("　") || "—";
+}
+
+/* ────────────────────────  svoz odpadu  ───────────────────────────── */
+
+var WASTE = [
+  { re: /bio/i,                        icon: "🌿", name: "Bioodpad",      bin: "hnědá popelnice" },
+  { re: /pap[íi]r|plast/i,             icon: "♻️", name: "Papír a plast", bin: "žlutý a modrý" },
+  { re: /sm[ěe]sn|komun[áa]l|popelnic/i, icon: "🗑️", name: "Směsný odpad", bin: "černá popelnice" }
+];
+
+function matchWaste(title) {
+  for (var i = 0; i < WASTE.length; i++) if (WASTE[i].re.test(title)) return WASTE[i];
+  return null;
+}
+
+function renderWaste() {
+  var today = startOfDay(new Date()), found = [];
+
+  (DATA.events || []).forEach(function (e) {
+    var m = matchWaste(e.title);
+    if (!m) return;
+    var d = startOfDay(new Date(e.start));
+    if (d < today) return;
+    found.push({ date: d, kind: m });
+  });
+  found.sort(function (a, b) { return a.date - b.date; });
+
+  var tile = $("#wasteTile");
+  if (!found.length) { tile.hidden = true; return; }
+
+  var first = found[0],
+      diff = Math.round((first.date - today) / 864e5),
+      when = diff === 0 ? "Dnes" : diff === 1 ? "Zítra" : "Za " + diff + " dní";
+
+  // Dlaždici ukazujeme jen když je svoz na spadnutí. Jinak to místo dostane
+  // program — svoz je i tak vidět v agendě jako celodenní událost.
+  tile.hidden = diff > 1;
+  if (tile.hidden) return;
+
+  tile.classList.toggle("soon", diff <= 1);
+  $("#wasteIcon").textContent = first.kind.icon;
+  $("#wasteWhen").textContent = when + " – " + first.kind.name;
+  $("#wasteWhat").textContent = first.kind.bin + (diff <= 1 ? " · vyndat večer" : "");
+
+  var rest = found.slice(1, 3).map(function (f) {
+    return f.kind.icon + "&nbsp; " + esc(cap(fmtDayShort.format(f.date)));
+  });
+  $("#wasteNext").innerHTML = rest.length
+    ? '<span style="opacity:.7">pak</span><br>' + rest.join("<br>")
+    : "";
+}
+
+/* ─────────────────────────────  seznamy  ──────────────────────────── */
+
+function liHtml(item) {
+  return '<div class="li' + (item.done ? " done" : "") + '">' +
+           '<div class="li-box">✓</div>' +
+           '<div class="li-label">' + esc(item.label) + "</div>" +
+         "</div>";
+}
+
+function renderLists() {
+  var L = DATA.lists || { tasks: [], shopping: [] },
+      shopping = L.shopping || [], tasks = L.tasks || [];
+
+  function open(arr) { return arr.filter(function (i) { return !i.done; }).length; }
+  $("#nShopping").textContent = open(shopping) ? "(" + open(shopping) + ")" : "";
+  $("#nTasks").textContent = open(tasks) ? "(" + open(tasks) + ")" : "";
+  $("#cShopping").textContent = open(shopping);
+  $("#cTasks").textContent = open(tasks);
+
+  function body(arr) {
+    if (!arr.length) return '<div class="empty">Prázdné — přidej v Apple Poznámkách</div>';
+    // neodškrtnuté nahoru, ať je z odstupu vidět, co ještě zbývá
+    return arr.slice().sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0); })
+              .map(liHtml).join("");
+  }
+
+  $("#listView").innerHTML = body(activeList === "shopping" ? shopping : tasks);
+  $("#bigShopping").innerHTML = body(shopping);
+  $("#bigTasks").innerHTML = body(tasks);
+
+  var label = DATA.syncedAt
+    ? "Z Apple Poznámek · " + hhmm(new Date(DATA.syncedAt))
+    : "Zdroj: Apple Poznámky";
+  $("#syncLabel").textContent = label;
+  $("#syncChip").textContent = label;
+
+  // Rodinná poznámka se na tabuli nezobrazuje — místo dostal program.
+  // Apps Script ji dál umí přijmout (DATA.note), kdyby se to mělo vrátit.
+}
+
+function runShortcut() {
+  var name = (CFG.shortcut || "").trim();
+  if (!name) { toast("Nejdřív vyplň název Zkratky v nastavení."); go("settings"); return; }
+  toast("Spouštím Zkratku „" + name + "“…");
+  location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
+  // po návratu ze Zkratky si vyzvedneme, co poslala
+  setTimeout(refreshData, 6000);
+}
+
+/* ───────────────────────  zakládání události  ─────────────────────── */
+
+var evDur = 60;   // zvolené trvání v minutách, 0 = celý den
+
+function isoDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+         "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function openEventBox() {
+  if (!CFG.api) { toast("Nejdřív nastav datové API."); go("settings"); return; }
+
+  var now = new Date(),
+      start = new Date(now.getTime() + 60 * 6e4);
+  start.setMinutes(start.getMinutes() > 30 ? 60 : 30, 0, 0);   // nejbližší půlhodina
+
+  $("#evTitle").value = "";
+  $("#evLoc").value = "";
+  $("#evDate").value = isoDate(now);
+  $("#evTime").value = String(start.getHours()).padStart(2, "0") + ":" +
+                       String(start.getMinutes()).padStart(2, "0");
+  $("#eventErr").hidden = true;
+  $("#evSave").disabled = false;
+  $("#evSave").textContent = "Přidat do kalendáře";
+
+  // dvě rychlé volby dopředu podle skutečných dnů v týdnu
+  [2, 3].forEach(function (off) {
+    var d = new Date(now.getTime() + off * 864e5);
+    $("#evChip" + off).textContent = cap(fmtWeekShort.format(d).replace(".", "")) +
+                                     " " + d.getDate() + ".";
+  });
+
+  setDur(60);
+  markWhenChip(0);
+  $("#evTarget").innerHTML = 'Uloží se do kalendáře, který má tabule povolený k zápisu ' +
+                             '(<code>WRITE_CALENDAR</code> v Apps Scriptu).';
+  $("#evTarget").style.cssText = "font-size:clamp(10px,.95vw,13px);color:var(--muted-2);line-height:1.5";
+
+  $("#eventBox").classList.add("show");
+  setTimeout(function () { $("#evTitle").focus(); }, 60);
+}
+
+function closeEventBox() { $("#eventBox").classList.remove("show"); }
+
+function setDur(min) {
+  evDur = min;
+  $$("#evDurChips button").forEach(function (b) {
+    b.classList.toggle("active", Number(b.dataset.min) === min);
+  });
+  // u celodenní události nemá čas smysl
+  $("#evTime").disabled = (min === 0);
+  $("#evTime").style.opacity = (min === 0) ? ".45" : "1";
+}
+
+function markWhenChip(off) {
+  $$("#evWhenChips button").forEach(function (b) {
+    b.classList.toggle("active", Number(b.dataset.off) === off);
+  });
+}
+
+function submitEvent(e) {
+  e.preventDefault();
+
+  var title = $("#evTitle").value.trim();
+  if (!title) { showEvErr("Napiš, o co jde."); return; }
+
+  var params = {
+    action: "addEvent",
+    title: title,
+    date: $("#evDate").value,
+    location: $("#evLoc").value.trim()
+  };
+  if (evDur === 0) {
+    params.allDay = "1";
+  } else {
+    params.time = $("#evTime").value;
+    params.minutes = String(evDur);
+  }
+  if (!params.date) { showEvErr("Vyber datum."); return; }
+  if (evDur !== 0 && !params.time) { showEvErr("Vyber čas, nebo přepni na Celý den."); return; }
+
+  $("#evSave").disabled = true;
+  $("#evSave").textContent = "Ukládám…";
+  $("#eventErr").hidden = true;
+
+  apiCall(params).then(function () {
+    closeEventBox();
+    toast("Přidáno: " + title);
+    refreshData();
+  }).catch(function (err) {
+    showEvErr(humanError(err));
+    $("#evSave").disabled = false;
+    $("#evSave").textContent = "Přidat do kalendáře";
+  });
+}
+
+/** Technické chyby přeložit na něco, s čím jde něco udělat. */
+function humanError(err) {
+  var m = String((err && err.message) || err);
+
+  if (/unauthorized/i.test(m)) {
+    return "Nesedí token. Zkontroluj ho v Nastavení proti tomu v Code.gs.";
+  }
+  if (/JSONP|HTTP \d|Failed to fetch|NetworkError/i.test(m)) {
+    return "Nepodařilo se spojit s Apps Scriptem. Zkontroluj /exec adresu, " +
+           "a že je nasazený s přístupem „Kdokoli“ a v nové verzi.";
+  }
+  if (/WRITE_CALENDAR|vkládání není povolené/i.test(m)) {
+    return "Apps Script nemá povolený kalendář pro zápis — vyplň WRITE_CALENDAR v Code.gs.";
+  }
+  if (/kalendář pro zápis není dostupný/i.test(m)) {
+    return "Kalendář pro zápis není dostupný. Účet tabule v něm musí mít právo měnit události.";
+  }
+  return m;   // zprávy z backendu jsou už česky
+}
+
+function showEvErr(msg) {
+  var el = $("#eventErr");
+  el.textContent = msg;
+  el.hidden = false;
+}
+
+/* ──────────────────────────  hodiny a téma  ───────────────────────── */
+
+function applyTheme() {
+  var t = CFG.theme;
+  if (t === "auto") {
+    var h = new Date().getHours();
+    t = (h >= 7 && h < 19) ? "light" : "dark";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+}
+
+function tick() {
+  var now = new Date();
+  $("#timeLabel").textContent = hhmm(now);
+
+  var hol = holidayName(now);
+  $("#dateDay").textContent = cap(fmtWeekday.format(now));
+  $("#dateRest").innerHTML = esc(fmtDayMonth.format(now)) +
+    (hol ? ' · <span class="holiday">' + esc(hol) + "</span>" : "");
+
+  applyTheme();
+
+  var k = dayKey(now);
+  if (lastDayKey && lastDayKey !== k) refreshData();
+  lastDayKey = k;
+}
+
+/* ──────────────────────────  načítání dat  ────────────────────────── */
+
+function renderAll() {
+  renderOverviewAgenda();
+  renderCalendarPage();
+  renderWaste();
+  renderLists();
+}
+
+function setStatus() {
+  var problems = [];
+  if (OK.data === false) problems.push("kalendář offline");
+  if (OK.wx === false) problems.push("počasí offline");
+  if (!CFG.api) problems.push("ukázková data");
+
+  var chip = $("#statusChip");
+  chip.hidden = !problems.length;
+  $("#statusText").textContent = problems.join(" · ");
+}
+
+function refreshData() {
+  return fetchData().then(function (d) {
+    OK.data = true;
+    DATA = {
+      events: d.events || [],
+      lists: d.lists || { tasks: [], shopping: [] },
+      note: d.note || "",
+      syncedAt: d.syncedAt || null,
+      demo: !!d.demo
+    };
+    if (!d.demo) cache("data", DATA);
+    renderAll();
+  }).catch(function (err) {
+    OK.data = false;
+    console.warn("data:", err);
+    var c = cache("data");
+    if (c) { DATA = c; renderAll(); }
+  }).then(function () {
+    LOADING = false;
+    setStatus();
+  });
+}
+
+function refreshWeather() {
+  return fetchWeather().then(function (w) {
+    OK.wx = true;
+    WX = w;
+    cache("weather", w);
+    renderWeather();
+  }).catch(function (err) {
+    OK.wx = false;
+    console.warn("počasí:", err);
+    var c = cache("weather");
+    if (c) { WX = Array.isArray(c) ? c : [c]; renderWeather(); }
+  }).then(setStatus);
+}
+
+/* ─────────────────────────────  navigace  ─────────────────────────── */
+
+function go(page) {
+  var home = (page === "overview");
+  $("#app").classList.toggle("home", home);
+  $("#app").classList.toggle("sub", !home);
+
+  $$(".page").forEach(function (p) { p.classList.toggle("active", p.dataset.page === page); });
+  $$(".nav-btn[data-go]").forEach(function (b) { b.classList.toggle("active", b.dataset.go === page); });
+  if (page === "settings") fillSettings();
+}
+
+/* ────────────────────────────  nastavení  ─────────────────────────── */
+
+function fillSettings() {
+  $("#fApi").value = CFG.api;
+  $("#fToken").value = CFG.token;
+  $("#fDays").value = CFG.days;
+  $("#fPlace").value = CFG.place;
+  $("#fPlace2").value = CFG.place2 || "";
+  $("#fFamily").value = CFG.family;
+  $("#fShortcut").value = CFG.shortcut;
+  $("#fTapHome").value = CFG.taphome;
+  $$("#themeSeg button").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.theme === CFG.theme);
+  });
+  $("#swHidePast").classList.toggle("on", !!CFG.hidePast);
+  $("#swHidePast").setAttribute("aria-checked", String(!!CFG.hidePast));
+}
+
+function saveSettings() {
+  var oldPlace = CFG.place, oldPlace2 = CFG.place2;
+
+  CFG.api = $("#fApi").value.trim();
+  CFG.token = $("#fToken").value.trim();
+  CFG.days = Math.min(45, Math.max(2, parseInt($("#fDays").value, 10) || 14));
+  CFG.place = $("#fPlace").value.trim() || DEFAULTS.place;
+  CFG.place2 = $("#fPlace2").value.trim();
+  CFG.family = $("#fFamily").value.trim() || DEFAULTS.family;
+  CFG.shortcut = $("#fShortcut").value.trim();
+  CFG.taphome = $("#fTapHome").value.trim();
+
+  if (!CFG.place2) { CFG.lat2 = null; CFG.lon2 = null; }
+  save();
+
+  document.title = CFG.family;
+  $("#locLabel").textContent = CFG.place;
+  applyTheme();
+
+  // dohledat souřadnice jen u míst, která se opravdu změnila
+  var jobs = [];
+  if (CFG.place !== oldPlace) {
+    jobs.push(geocode(CFG.place).then(function (r) {
+      CFG.lat = r.latitude; CFG.lon = r.longitude; CFG.place = r.name;
+    }).catch(function () {
+      toast("Místo „" + CFG.place + "“ se nenašlo, souřadnice zůstávají.");
+    }));
+  }
+  if (CFG.place2 && CFG.place2 !== oldPlace2) {
+    jobs.push(geocode(CFG.place2).then(function (r) {
+      CFG.lat2 = r.latitude; CFG.lon2 = r.longitude; CFG.place2 = r.name;
+    }).catch(function () {
+      toast("Druhé místo „" + CFG.place2 + "“ se nenašlo.");
+      CFG.place2 = ""; CFG.lat2 = null; CFG.lon2 = null;
+    }));
+  }
+
+  Promise.all(jobs).then(function () {
+    save();
+    wxIndex = 0;
+    $("#locLabel").textContent = CFG.place;
+    refreshData();
+    refreshWeather();
+    toast("Uloženo.");
+    go("overview");
+  });
+}
+
+/* ──────────────────────────────  start  ───────────────────────────── */
+
+function bind() {
+  $$(".nav-btn[data-go]").forEach(function (b) {
+    b.addEventListener("click", function () { go(b.dataset.go); });
+  });
+
+  // Bez schématu i s ním: když v nastavení není URL (nemá "://"), bereme to
+  // jako název iOS Zkratky. Zkratka s akcí „Otevřít aplikaci“ umí spustit
+  // jakoukoli nainstalovanou appku, takže na URL schéma TapHome nejsme vázaní.
+  $("#taphomeBtn").addEventListener("click", function () {
+    var v = (CFG.taphome || "").trim();
+    if (!v) {
+      toast("Vlož v nastavení název Zkratky, která otevírá TapHome — nebo použij Split View.");
+      go("settings");
+      return;
+    }
+    location.href = v.indexOf("://") > 0
+      ? v
+      : "shortcuts://run-shortcut?name=" + encodeURIComponent(v);
+  });
+
+  $$(".seg-btn[data-list]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      activeList = b.dataset.list;
+      $$(".seg-btn[data-list]").forEach(function (x) { x.classList.toggle("active", x === b); });
+      renderLists();
+    });
+  });
+
+  $("#refreshBtn").addEventListener("click", function () {
+    toast("Obnovuji…");
+    refreshData(); refreshWeather();
+  });
+
+  $("#syncBtn").addEventListener("click", runShortcut);
+  $("#syncBtn2").addEventListener("click", runShortcut);
+
+  $("#addEventBtn").addEventListener("click", openEventBox);
+  $("#addEventBtnOverview").addEventListener("click", openEventBox);
+  $("#evCancel").addEventListener("click", closeEventBox);
+  $("#eventForm").addEventListener("submit", submitEvent);
+
+  $$("#evDurChips button").forEach(function (b) {
+    b.addEventListener("click", function () { setDur(Number(b.dataset.min)); });
+  });
+
+  $$("#evWhenChips button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var off = Number(b.dataset.off);
+      if (off < 0) { markWhenChip(-1); $("#evDate").focus(); return; }
+      $("#evDate").value = isoDate(new Date(Date.now() + off * 864e5));
+      markWhenChip(off);
+    });
+  });
+
+  // ruční změna data zruší zvýraznění rychlé volby
+  $("#evDate").addEventListener("change", function () {
+    var off = Math.round((new Date(this.value + "T12:00:00") -
+                          startOfDay(new Date())) / 864e5);
+    markWhenChip([0, 1, 2, 3].indexOf(off) >= 0 ? off : -1);
+  });
+
+  // klepnutí mimo dialog i Esc ho zavřou
+  $("#eventBox").addEventListener("click", function (e) {
+    if (e.target === this) closeEventBox();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeEventBox(); $("#confirmBox").classList.remove("show"); }
+  });
+
+  $("#saveBtn").addEventListener("click", saveSettings);
+
+  $$("#themeSeg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      CFG.theme = b.dataset.theme; save();
+      $$("#themeSeg button").forEach(function (x) { x.classList.toggle("active", x === b); });
+      applyTheme();
+    });
+  });
+
+  $("#swHidePast").addEventListener("click", function () {
+    CFG.hidePast = !CFG.hidePast; save();
+    this.classList.toggle("on", CFG.hidePast);
+    this.setAttribute("aria-checked", String(CFG.hidePast));
+    renderOverviewAgenda();
+  });
+
+  // UX: destruktivní akce na zdi potřebuje potvrzení, jinak ji smázne dítě
+  $("#resetBtn").addEventListener("click", function () {
+    confirmBox("Smazat nastavení tabule?",
+      "Zmizí URL, token i místo z tohoto iPadu. Kalendář ani poznámky se nesmažou.",
+      function () {
+        try { localStorage.removeItem("tabule.cfg"); } catch (e) {}
+        location.reload();
+      });
+  });
+
+  // fullscreen jen když tabule neběží jako webová aplikace z plochy
+  var standalone = window.navigator.standalone === true ||
+                   window.matchMedia("(display-mode: standalone)").matches;
+  if (!standalone && document.documentElement.requestFullscreen) {
+    $("#fullscreenBtn").hidden = false;
+    $("#fullscreenBtn").addEventListener("click", function () {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    });
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) { tick(); refreshData(); refreshWeather(); }
+  });
+  window.addEventListener("online", function () { refreshData(); refreshWeather(); });
+}
+
+function init() {
+  document.title = CFG.family;   // hlavička nese datum, název jde do titulku
+  $("#locLabel").textContent = CFG.place;
+
+  bind();
+  tick();
+  setInterval(tick, 1000);
+
+  // starší cache mohla být objekt, ne pole
+  var cw = cache("weather");
+  if (cw) { WX = Array.isArray(cw) ? cw : [cw]; renderWeather(); }
+  var cd = cache("data"); if (cd && CFG.api) { DATA = cd; renderAll(); }
+  if (CFG.api && !cd) { LOADING = true; renderOverviewAgenda(); }
+
+  // nastavení přišlo v adrese – dopočítat souřadnice obou míst
+  if (NEEDS_GEOCODE) {
+    var jobs = [
+      geocode(CFG.place).then(function (r) {
+        CFG.lat = r.latitude; CFG.lon = r.longitude; CFG.place = r.name;
+      }).catch(function () {
+        toast("Místo „" + CFG.place + "“ se nenašlo, souřadnice zůstávají.");
+      })
+    ];
+    if (CFG.place2) {
+      jobs.push(geocode(CFG.place2).then(function (r) {
+        CFG.lat2 = r.latitude; CFG.lon2 = r.longitude; CFG.place2 = r.name;
+      }).catch(function () {
+        toast("Druhé místo „" + CFG.place2 + "“ se nenašlo.");
+        CFG.place2 = ""; CFG.lat2 = null; CFG.lon2 = null;
+      }));
+    }
+    Promise.all(jobs).then(function () {
+      save();
+      $("#locLabel").textContent = CFG.place;
+      refreshWeather();
+    });
+  }
+  if (SETUP_FROM_URL) {
+    toast(CFG.api ? "Nastavení převzato z adresy." : "Nastavení tabule smazáno.");
+  }
+
+  refreshData();
+  refreshWeather();
+  setStatus();
+
+  setInterval(refreshData, 5 * 60 * 1000);
+  setInterval(refreshWeather, 15 * 60 * 1000);
+}
+
+init();
+</script>
+</body>
+</html>

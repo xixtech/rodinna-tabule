@@ -1,0 +1,7 @@
+.DS_Store
+*.swp
+
+# Osobní data — harmonogram konkrétní obce prozrazuje bydliště,
+# proto zůstává jen lokálně. Formát je popsaný v tools/gen-svoz.py.
+tools/svoz-data-*.json
+svoz-odpadu-*.ics
