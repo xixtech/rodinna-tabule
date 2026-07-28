@@ -301,10 +301,27 @@
   .wx-symbol { font-size: clamp(30px, 3.4vw, 46px); line-height: 1; }
   .wx-temp { font-size: clamp(27px, 3.1vw, 42px); font-weight: 300; line-height: 1; letter-spacing: -.025em; }
   .wx-desc { font-size: clamp(11px, 1.1vw, 15px); color: var(--muted); margin-top: .15em; }
-  .wx-facts {
-    margin-left: auto; text-align: right; font-size: clamp(9px, .95vw, 13px);
-    color: var(--muted); line-height: 1.45;
+  /* Volné místo mezi teplotou a údaji vpravo nese detaily, které u počasí
+     chyběly. `margin: 0 auto` je tu schválně — volný prostor si vezmou jeho
+     auto okraje, takže se blok vycentruje a wx-facts zůstane u pravé hrany. */
+  .wx-detail {
+    margin: 0 auto;
+    display: grid; grid-template-columns: auto auto;
+    gap: 1px clamp(9px, 1.1vw, 17px);
+    font-size: clamp(9px, .95vw, 13px); color: var(--muted-2);
+    line-height: 1.5; white-space: nowrap;
   }
+  .wx-detail b { color: var(--text); font-weight: 640; }
+  .wx-detail .up { color: var(--yellow); }
+  .wx-detail .down { color: var(--blue); }
+
+  .wx-facts {
+    text-align: right; font-size: clamp(9px, .95vw, 13px);
+    color: var(--muted); line-height: 1.45; flex: 0 0 auto;
+  }
+
+  /* na užší obrazovce by se detaily s údaji vpravo tloukly */
+  @media (max-width: 900px) { .wx-detail { display: none; } }
 
   /* přepínač lokalit – malé pilulky, ať sekce nenaroste o celý řádek */
   .place-tabs { display: flex; gap: 3px; justify-content: flex-end; margin-bottom: 4px; }
@@ -622,6 +639,7 @@
                 <div class="wx-temp" id="wxTemp">--°</div>
                 <div class="wx-desc" id="wxDesc">Načítám počasí…</div>
               </div>
+              <div class="wx-detail" id="wxDetail"></div>
               <div class="wx-facts">
                 <div class="place-tabs" id="wxPlaces" hidden></div>
                 <div>Pocitově <b id="wxFeels">--°</b></div>
@@ -1118,8 +1136,8 @@ function fetchWeather() {
   u.search = new URLSearchParams({
     latitude: ps.map(function (p) { return p.lat; }).join(","),
     longitude: ps.map(function (p) { return p.lon; }).join(","),
-    current: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day",
-    hourly: "temperature_2m,weather_code,precipitation_probability,precipitation,is_day",
+    current: "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day,pressure_msl",
+    hourly: "temperature_2m,weather_code,precipitation_probability,precipitation,is_day,pressure_msl",
     daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset",
     timezone: "auto", forecast_days: 7
   }).toString();
@@ -1169,6 +1187,48 @@ function rainHint(h) {
            (snow ? " · pozor na cestách" : " · vezmi pláštěnku");
   }
   return "";
+}
+
+/**
+ * Trend tlaku za poslední 3 hodiny. Hourly u Open-Meteo obsahuje i uplynulé
+ * hodiny dneška, takže se dá srovnat s hodnotou před třemi hodinami.
+ * Klesající tlak je klasická předzvěst zhoršení, což je přesně ten „bližší“
+ * údaj, který se z teploty a větru nevyčte.
+ */
+function pressureTrend(h) {
+  if (!h || !h.pressure_msl) return null;
+  var i = currentHourIndex(h), j = i - 3;
+  if (j < 0 || h.pressure_msl[i] == null || h.pressure_msl[j] == null) return null;
+
+  var delta = h.pressure_msl[i] - h.pressure_msl[j];
+  if (delta > 1) return { arrow: "↑", cls: "up", title: "tlak stoupá" };
+  if (delta < -1) return { arrow: "↓", cls: "down", title: "tlak klesá" };
+  return { arrow: "→", cls: "", title: "tlak setrvalý" };
+}
+
+function renderDetail(c, d, h) {
+  var rows = [];
+
+  if (d.temperature_2m_max && d.temperature_2m_min) {
+    rows.push(["Dnes", Math.round(d.temperature_2m_min[0]) + "° / " +
+                       Math.round(d.temperature_2m_max[0]) + "°"]);
+  }
+  if (c.relative_humidity_2m != null) {
+    rows.push(["Vlhkost", Math.round(c.relative_humidity_2m) + " %"]);
+  }
+  if (c.pressure_msl != null) {
+    var t = pressureTrend(h),
+        val = Math.round(c.pressure_msl) + " hPa" +
+              (t ? ' <span class="' + t.cls + '" title="' + t.title + '">' + t.arrow + "</span>" : "");
+    rows.push(["Tlak", val]);
+  }
+  if (d.uv_index_max && d.uv_index_max[0] != null) {
+    rows.push(["UV", String(Math.round(d.uv_index_max[0]))]);
+  }
+
+  $("#wxDetail").innerHTML = rows.map(function (r) {
+    return "<span>" + r[0] + "</span><b>" + r[1] + "</b>";
+  }).join("");
 }
 
 function renderPlaceTabs() {
@@ -1236,6 +1296,8 @@ function renderWeather() {
       $("#wxSunRow").innerHTML = 'Západ <b>' + hhmm(sunset) + "</b>";
     }
   }
+
+  renderDetail(c, d, h);
 
   var hint = rainHint(h);
   $("#wxHint").hidden = !hint;

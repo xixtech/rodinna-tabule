@@ -307,6 +307,12 @@ tedy ~100 dotazů denně — vejdeme se s velkou rezervou.
 
 Místo se zadává názvem a souřadnice dopočítá geokódovací API Open-Meteo.
 
+Karta počasí ukazuje aktuální stav, dnešní rozsah teplot, vlhkost, UV
+a **tlak s trendem za poslední tři hodiny**. Ta šipka je tam schválně —
+klesající tlak je klasická předzvěst zhoršení a z teploty ani větru se
+to nevyčte. Hourly u Open-Meteo obsahuje i uplynulé hodiny dneška, takže
+se trend spočítá bez dalšího dotazu.
+
 V *Nastavení* jde vyplnit i **druhé místo** — v kartě počasí se pak objeví
 přepínač mezi oběma. Obě lokality se načtou jedním dotazem (Open-Meteo bere
 souřadnice oddělené čárkou a vrací pole), takže to nic nezdrží ani nezdvojuje
