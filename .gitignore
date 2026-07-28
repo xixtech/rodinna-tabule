@@ -5,3 +5,5 @@
 # proto zůstává jen lokálně. Formát je popsaný v tools/gen-svoz.py.
 tools/svoz-data-*.json
 svoz-odpadu-*.ics
+
+# Adresa se zadava v Nastaveni tabule, nikdy do souboru.

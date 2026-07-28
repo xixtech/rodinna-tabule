@@ -295,6 +295,30 @@
   .waste.soon .waste-when { color: var(--yellow); }
 
   /* ══════════════════ poznámka ══════════════════ */
+  /* ══════════════════ adresa ══════════════════
+     Klepnutím se zvětší — psát PSČ kurýrovi podle drobného textu na zdi
+     je otrava, ve zvětšení se to přečte i z druhého konce kuchyně. */
+  .addr { display: flex; align-items: center; gap: clamp(9px, 1vw, 13px);
+          padding: clamp(8px, .9vw, 13px) clamp(11px, 1.2vw, 16px); }
+  .addr-icon {
+    width: clamp(28px, 2.5vw, 34px); height: clamp(28px, 2.5vw, 34px); border-radius: 10px;
+    display: grid; place-items: center; font-size: clamp(14px, 1.2vw, 17px);
+    background: rgba(123, 224, 168, .13); border: 1px solid rgba(123, 224, 168, .22); color: var(--green);
+  }
+  .addr-body { min-width: 0; }
+  .addr-text {
+    font-size: clamp(12px, 1.2vw, 16px); font-weight: 600; line-height: 1.3;
+    white-space: pre-line; overflow: hidden; text-overflow: ellipsis;
+  }
+  .addr-text.ghost { font-weight: 400; color: var(--muted-2); }
+  .addr .chev { margin-left: auto; color: var(--muted-2); font-size: clamp(13px, 1.2vw, 16px); }
+
+  #addrBig {
+    font-size: clamp(24px, 4.2vw, 52px); font-weight: 600; line-height: 1.25;
+    white-space: pre-line; letter-spacing: -.01em; text-align: center;
+    margin: .2em 0 1.2em;
+  }
+
   /* ══════════════════ počasí ══════════════════
      Sekce je držená schválně nízko — místo, které ušetří, dostanou seznamy. */
   .wx-top { display: flex; align-items: center; gap: clamp(9px, 1.1vw, 14px); }
@@ -672,13 +696,25 @@
               <button class="seg-btn" type="button" data-list="tasks" role="tab">Úkoly <span class="n" id="nTasks"></span></button>
             </div>
             <div class="scroll" id="listView"></div>
-            <div class="src-row">
+            <div class="src-row" id="listSrcRow">
               <span id="syncLabel">Zdroj: Apple Poznámky</span>
               <button class="soft-btn accent" id="syncBtn" type="button" style="margin-left:auto">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
                 Synchronizovat
               </button>
             </div>
+          </article>
+
+          <article class="card glass addr" id="addrCard" role="button" tabindex="0"
+                   title="Klepnutím zvětšit">
+            <div class="addr-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            </div>
+            <div class="addr-body">
+              <div class="eyebrow" style="margin-bottom:2px">Naše adresa</div>
+              <div class="addr-text" id="addrText"></div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
           </article>
   </div>
 
@@ -787,6 +823,12 @@
               <label for="fFamily">Název tabule</label>
               <input id="fFamily" type="text" maxlength="50" placeholder="Rodinná tabule">
             </div>
+            <div class="field">
+              <label for="fAddress">Naše adresa</label>
+              <textarea id="fAddress" maxlength="160" rows="3"
+                        placeholder="Ulice 123&#10;251 63 Obec"></textarea>
+              <div class="field-help"><b>Nikam se neposílá</b> — zůstává jen v tomto iPadu, v souborech na hostingu není. Piš klidně na víc řádků, tabule je zachová. Klepnutím na kartu se adresa zvětší, ať se dá nadiktovat kurýrovi.</div>
+            </div>
           </section>
 
           <section class="sect">
@@ -877,6 +919,17 @@
   </div>
 </div>
 
+<div class="backdrop" id="addrBox" role="dialog" aria-modal="true" aria-labelledby="addrBoxTitle">
+  <div class="dialog wide">
+    <h2 id="addrBoxTitle">Naše adresa</h2>
+    <div id="addrBig"></div>
+    <div class="dialog-actions">
+      <button class="soft-btn" type="button" id="addrEdit">Upravit</button>
+      <button class="primary-btn" type="button" id="addrClose">Zavřít</button>
+    </div>
+  </div>
+</div>
+
 <div class="backdrop" id="eventBox" role="dialog" aria-modal="true" aria-labelledby="eventBoxTitle">
   <form class="dialog wide" id="eventForm">
     <h2 id="eventBoxTitle">Nová událost</h2>
@@ -952,6 +1005,9 @@ var DEFAULTS = {
   place: "Praha", lat: 50.0755, lon: 14.4378,
   place2: "", lat2: null, lon2: null,     // nepovinná druhá lokalita
   family: "Rodinná tabule",
+  // Adresa se nikdy nedostane do souborů — zadává se v Nastavení a drží se
+  // v localStorage tohoto iPadu. Hosting je veřejný, tak to tak má zůstat.
+  address: "",
   shortcut: "Tabule sync",
   taphome: "",
   theme: "auto",
@@ -994,7 +1050,7 @@ function load() {
     touched = true;
   }
 
-  ["api", "token", "place", "place2", "family", "shortcut", "taphome"].forEach(function (k) {
+  ["api", "token", "place", "place2", "family", "shortcut", "taphome", "address"].forEach(function (k) {
     if (!q.has(k)) return;
     cfg[k] = q.get(k).trim();
     touched = true;
@@ -1716,6 +1772,21 @@ function runShortcut() {
   setTimeout(refreshData, 6000);
 }
 
+/* ─────────────────────────────  adresa  ───────────────────────────── */
+
+function renderAddress() {
+  var a = (CFG.address || "").trim(), el = $("#addrText");
+  el.textContent = a || "Klepni a doplň v nastavení";
+  el.classList.toggle("ghost", !a);
+}
+
+function openAddrBox() {
+  var a = (CFG.address || "").trim();
+  if (!a) { go("settings"); setTimeout(function () { $("#fAddress").focus(); }, 80); return; }
+  $("#addrBig").textContent = a;
+  $("#addrBox").classList.add("show");
+}
+
 /* ───────────────────────  zakládání události  ─────────────────────── */
 
 var evDur = 60;   // zvolené trvání v minutách, 0 = celý den
@@ -1944,6 +2015,7 @@ function fillSettings() {
   $("#fPlace").value = CFG.place;
   $("#fPlace2").value = CFG.place2 || "";
   $("#fFamily").value = CFG.family;
+  $("#fAddress").value = CFG.address || "";
   $("#fShortcut").value = CFG.shortcut;
   $("#fTapHome").value = CFG.taphome;
   $$("#themeSeg button").forEach(function (b) {
@@ -1962,6 +2034,7 @@ function saveSettings() {
   CFG.place = $("#fPlace").value.trim() || DEFAULTS.place;
   CFG.place2 = $("#fPlace2").value.trim();
   CFG.family = $("#fFamily").value.trim() || DEFAULTS.family;
+  CFG.address = $("#fAddress").value.trim().slice(0, 160);
   CFG.shortcut = $("#fShortcut").value.trim();
   CFG.taphome = $("#fTapHome").value.trim();
 
@@ -1970,6 +2043,7 @@ function saveSettings() {
 
   document.title = CFG.family;
   $("#locLabel").textContent = CFG.place;
+  renderAddress();
   applyTheme();
 
   // dohledat souřadnice jen u míst, která se opravdu změnila
@@ -2031,6 +2105,20 @@ function bind() {
     });
   });
 
+  $("#addrCard").addEventListener("click", openAddrBox);
+  $("#addrCard").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAddrBox(); }
+  });
+  $("#addrClose").addEventListener("click", function () { $("#addrBox").classList.remove("show"); });
+  $("#addrEdit").addEventListener("click", function () {
+    $("#addrBox").classList.remove("show");
+    go("settings");
+    setTimeout(function () { $("#fAddress").focus(); }, 80);
+  });
+  $("#addrBox").addEventListener("click", function (e) {
+    if (e.target === this) this.classList.remove("show");
+  });
+
   $("#overviewAgenda").addEventListener("scroll", updateScrollHint, { passive: true });
   window.addEventListener("resize", updateScrollHint);
 
@@ -2072,7 +2160,11 @@ function bind() {
     if (e.target === this) closeEventBox();
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { closeEventBox(); $("#confirmBox").classList.remove("show"); }
+    if (e.key === "Escape") {
+      closeEventBox();
+      $("#confirmBox").classList.remove("show");
+      $("#addrBox").classList.remove("show");
+    }
   });
 
   $("#saveBtn").addEventListener("click", saveSettings);
@@ -2122,6 +2214,7 @@ function bind() {
 function init() {
   document.title = CFG.family;   // hlavička nese datum, název jde do titulku
   $("#locLabel").textContent = CFG.place;
+  renderAddress();
 
   bind();
   tick();
