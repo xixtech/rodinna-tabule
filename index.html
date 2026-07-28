@@ -142,8 +142,9 @@
     background: linear-gradient(150deg, rgba(103, 212, 255, .22), rgba(37, 136, 255, .16));
     border: 1px solid rgba(103, 212, 255, .2);
   }
-  /* Datum má přednost: brand-copy roste, štítek stavu se zkrátí první. */
-  .brand-copy { flex: 1 1 auto; min-width: 0; }
+  /* Datum má přednost, štítek stavu se zkrátí první. Volné místo pohlcuje
+     margin-right u .addr-btn, aby piktogram adresy zůstal hned u data. */
+  .brand-copy { flex: 0 1 auto; min-width: 0; }
   .eyebrow {
     font-size: clamp(9px, .85vw, 12px); font-weight: 700;
     letter-spacing: .14em; text-transform: uppercase; color: var(--muted-2);
@@ -296,22 +297,15 @@
 
   /* ══════════════════ poznámka ══════════════════ */
   /* ══════════════════ adresa ══════════════════
-     Klepnutím se zvětší — psát PSČ kurýrovi podle drobného textu na zdi
-     je otrava, ve zvětšení se to přečte i z druhého konce kuchyně. */
-  .addr { display: flex; align-items: center; gap: clamp(9px, 1vw, 13px);
-          padding: clamp(8px, .9vw, 13px) clamp(11px, 1.2vw, 16px); }
-  .addr-icon {
-    width: clamp(28px, 2.5vw, 34px); height: clamp(28px, 2.5vw, 34px); border-radius: 10px;
-    display: grid; place-items: center; font-size: clamp(14px, 1.2vw, 17px);
-    background: rgba(123, 224, 168, .13); border: 1px solid rgba(123, 224, 168, .22); color: var(--green);
+     V hlavičce vedle data je jen piktogram, po rozkliknutí se adresa zvětší
+     přes celou obrazovku — psát PSČ kurýrovi podle drobného textu na zdi je
+     otrava, ve zvětšení se to přečte i z druhého konce kuchyně. */
+  .addr-btn {
+    flex: 0 0 auto; margin-right: auto;   /* drží se u data, zbytek místa pohltí */
+    color: var(--green); border-color: rgba(123, 224, 168, .24);
+    background: rgba(123, 224, 168, .1);
   }
-  .addr-body { min-width: 0; }
-  .addr-text {
-    font-size: clamp(12px, 1.2vw, 16px); font-weight: 600; line-height: 1.3;
-    white-space: pre-line; overflow: hidden; text-overflow: ellipsis;
-  }
-  .addr-text.ghost { font-weight: 400; color: var(--muted-2); }
-  .addr .chev { margin-left: auto; color: var(--muted-2); font-size: clamp(13px, 1.2vw, 16px); }
+  .addr-btn.empty { color: var(--muted-2); background: var(--panel-2); border-style: dashed; }
 
   #addrBig {
     font-size: clamp(24px, 4.2vw, 52px); font-weight: 600; line-height: 1.25;
@@ -461,6 +455,50 @@
   .agenda-cols > div { min-height: 0; overflow-y: auto; padding-right: 4px; }
   .agenda-cols > div::-webkit-scrollbar { display: none; }
 
+  /* ══════════════════ školní rozvrh ══════════════════ */
+  .sch-grid { display: grid; gap: 4px; }
+  .sch-row { display: grid; gap: 4px; align-items: stretch; }
+  .sch-h {
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(6px, .8vw, 11px) 4px; border-radius: 12px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    font-size: clamp(10px, 1.05vw, 14px); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  }
+  .sch-h.today { background: rgba(103, 212, 255, .16); border-color: rgba(103, 212, 255, .38); color: var(--blue); }
+  .sch-n {
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(10px, 1vw, 13px); color: var(--muted-2); font-weight: 600;
+  }
+  .sch-c {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: clamp(7px, .9vw, 12px) 4px; border-radius: 12px; min-height: 40px;
+    background: var(--panel-solid); border: 1px solid var(--line);
+    font-size: clamp(11px, 1.15vw, 16px); font-weight: 560;
+  }
+  .sch-c.empty { background: transparent; border-style: dashed; color: var(--muted-2); }
+  .sch-col-today .sch-c { border-color: rgba(103, 212, 255, .3); }
+
+  /* ══════════════════ poznámky ══════════════════ */
+  .note-item {
+    display: flex; align-items: flex-start; gap: clamp(9px, 1vw, 14px);
+    padding: clamp(10px, 1.1vw, 15px) clamp(11px, 1.2vw, 16px);
+    margin-bottom: 6px; border-radius: var(--r-md);
+    background: var(--panel-solid); border: 1px solid var(--line);
+  }
+  .note-body { flex: 1; min-width: 0; }
+  .note-item .txt {
+    font-size: clamp(12px, 1.25vw, 17px);
+    font-weight: 540; line-height: 1.4; white-space: pre-wrap; word-break: break-word;
+  }
+  .note-item .when { font-size: clamp(9px, .92vw, 12px); color: var(--muted-2); margin-top: 4px; }
+  .note-del {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px;
+    display: grid; place-items: center; font-size: clamp(14px, 1.2vw, 17px);
+    background: transparent; border: 1px solid var(--line); color: var(--muted-2);
+  }
+  .note-del:active { color: var(--red); border-color: rgba(255, 140, 155, .4); }
+
   /* ══════════════════ stránka Nastavení ══════════════════ */
   .settings-grid {
     flex: 1; min-height: 0; overflow-y: auto;
@@ -605,6 +643,9 @@
       <div class="date-day" id="dateDay">—</div>
       <div class="date-rest" id="dateRest"></div>
     </div>
+    <button class="icon-btn addr-btn" id="addrBtn" type="button" title="Naše adresa" aria-label="Naše adresa">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+    </button>
 
     <div class="header-right">
       <span class="chip warn" id="statusChip" hidden>
@@ -705,17 +746,6 @@
             </div>
           </article>
 
-          <article class="card glass addr" id="addrCard" role="button" tabindex="0"
-                   title="Klepnutím zvětšit">
-            <div class="addr-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-            </div>
-            <div class="addr-body">
-              <div class="eyebrow" style="margin-bottom:2px">Naše adresa</div>
-              <div class="addr-text" id="addrText"></div>
-            </div>
-            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-          </article>
   </div>
 
   <!-- ═════════════ ostatní stránky ═════════════ -->
@@ -741,6 +771,73 @@
           <div id="calCol1"></div>
           <div id="calCol2"></div>
         </div>
+      </article>
+    </section>
+
+    <!-- ── Školní rozvrh ── -->
+    <section class="page" data-page="schedule">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13"/><path d="M4 19h16M8 8h8M8 12h8M8 16h5"/></svg>
+            Školní rozvrh
+          </div>
+          <div class="page-actions">
+            <div class="segmented" id="schKids" style="margin:0;min-width:180px"></div>
+            <button class="soft-btn" id="schEditBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              Upravit
+            </button>
+          </div>
+        </div>
+
+        <div id="schView" class="scroll"></div>
+
+        <div id="schEdit" hidden style="display:flex;flex-direction:column;min-height:0;flex:1">
+          <div class="field" style="flex:1;display:flex;flex-direction:column;min-height:0">
+            <label for="fSchedule">Rozvrh textem — jeden den na řádek</label>
+            <textarea id="fSchedule" style="flex:1;min-height:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace" spellcheck="false"></textarea>
+            <div class="field-help">
+              Jméno dítěte uveď řádkem začínajícím <code>#</code>, pak dny.
+              Zkratky dnů: <code>Po Út St Čt Pá</code>. Předměty odděl čárkou,
+              prázdnou hodinu napiš jako <code>-</code>. Například:
+              <code style="display:block;margin-top:6px;line-height:1.7">
+              # Adam<br>Po: Čj, M, Aj, Tv, Vv<br>Út: M, Čj, Prv, Hv
+              </code>
+              Rozvrh se ukládá jen do tohoto iPadu.
+            </div>
+          </div>
+          <div class="page-actions" style="margin:0;justify-content:flex-end">
+            <button class="soft-btn" id="schCancel" type="button">Zrušit</button>
+            <button class="primary-btn" id="schSave" type="button">Uložit rozvrh</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ── Poznámky ── -->
+    <section class="page" data-page="notes">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>
+            Poznámky
+          </div>
+          <span class="count-pill" id="notesCount" style="margin-left:0">0</span>
+          <div class="page-actions">
+            <span class="chip" id="notesHint">ukládá se u Googlu</span>
+          </div>
+        </div>
+
+        <div class="list-toolbar" style="display:flex;gap:.6em;margin-bottom:clamp(9px,1vw,14px)">
+          <input id="noteInput" type="text" maxlength="500" autocomplete="off"
+                 placeholder="Napiš poznámku a klepni na +" style="flex:1;padding:.7em .9em;min-height:46px;border-radius:14px;background:var(--panel-solid);border:1px solid var(--line)">
+          <button class="primary-btn" id="noteAdd" type="button" aria-label="Přidat poznámku" style="min-width:56px;justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+
+        <div id="notesView" class="scroll"></div>
       </article>
     </section>
 
@@ -891,6 +988,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       <span>Kalendář</span>
     </button>
+    <button class="nav-btn" type="button" data-go="schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13"/><path d="M4 19h16M8 8h8M8 12h8M8 16h5"/></svg>
+      <span>Rozvrh</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="notes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>
+      <span>Poznámky</span>
+    </button>
     <button class="nav-btn taphome" id="taphomeBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/><path d="M9 21v-7h6v7"/></svg>
       <span>TapHome ↗</span>
@@ -1008,6 +1113,7 @@ var DEFAULTS = {
   // Adresa se nikdy nedostane do souborů — zadává se v Nastavení a drží se
   // v localStorage tohoto iPadu. Hosting je veřejný, tak to tak má zůstat.
   address: "",
+  schedule: "",              // školní rozvrh textem, viz parseSchedule()
   shortcut: "Tabule sync",
   taphome: "",
   theme: "auto",
@@ -1018,7 +1124,7 @@ var NEEDS_GEOCODE = false;
 var SETUP_FROM_URL = false;
 
 var CFG = load();
-var DATA = { events: [], lists: { tasks: [], shopping: [] }, note: "", syncedAt: null, demo: true };
+var DATA = { events: [], lists: { tasks: [], shopping: [] }, notes: [], note: "", syncedAt: null, demo: true };
 var WX = null;        // pole předpovědí, index podle places()
 var wxIndex = 0;      // která lokalita je zobrazená
 var OK = { data: null, wx: null };
@@ -1449,7 +1555,11 @@ function demoData() {
                  { label: "rajčata", done: false }, { label: "ovoce", done: true }],
       tasks: [{ label: "Vyzvednout balík", done: false }, { label: "Zalít zahradu", done: false },
               { label: "Připravit tašky dětem", done: true }]
-    }
+    },
+    notes: [
+      { id: "d1", text: "Kód od schránky je na lednici.", at: new Date(Date.now() - 36e5).toISOString() },
+      { id: "d2", text: "V pátek přijede instalatér mezi 9 a 11.", at: new Date(Date.now() - 8 * 36e5).toISOString() }
+    ]
   };
 }
 
@@ -1772,12 +1882,201 @@ function runShortcut() {
   setTimeout(refreshData, 6000);
 }
 
+/* ─────────────────────────  školní rozvrh  ────────────────────────── */
+
+var SCH_DAYS = [
+  { key: "po", label: "Po", dow: 1 }, { key: "út", label: "Út", dow: 2 },
+  { key: "st", label: "St", dow: 3 }, { key: "čt", label: "Čt", dow: 4 },
+  { key: "pá", label: "Pá", dow: 5 }
+];
+var schKid = 0;
+
+/** Odstraní diakritiku, ať „Út“, „Ut“ i „úterý“ znamenají totéž — na klávesnici
+ *  to nikdo háčkovat nebude a mlčky přeskočený den je horší než tolerantní parser. */
+function foldDia(s) {
+  return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+function schDayFor(token) {
+  var t = foldDia(token).replace(/\.$/, "");
+  if (!t) return null;
+  for (var i = 0; i < SCH_DAYS.length; i++) {
+    var f = foldDia(SCH_DAYS[i].label);
+    if (t === f || t.indexOf(f) === 0) return SCH_DAYS[i];
+  }
+  return null;
+}
+
+/**
+ * Rozvrh se zadává textem, ne mřížkou. Klikat mřížku na nástěnném tabletu
+ * je utrpení a rozvrh se mění dvakrát do roka — vložit ho textem je rychlejší.
+ *
+ *   # Adam
+ *   Po: Čj, M, Aj, Tv, Vv
+ *   Út: M, Čj, -, Hv
+ */
+function parseSchedule(text) {
+  var kids = [], cur = null;
+
+  String(text || "").split(/\r?\n/).forEach(function (raw) {
+    var line = raw.trim();
+    if (!line) return;
+
+    if (line.charAt(0) === "#") {
+      cur = { name: line.slice(1).trim() || "Rozvrh", days: {} };
+      kids.push(cur);
+      return;
+    }
+
+    var m = line.match(/^([^:]+):\s*(.*)$/);
+    if (!m) return;
+
+    var day = schDayFor(m[1]);
+    if (!day) return;
+
+    if (!cur) { cur = { name: "Rozvrh", days: {} }; kids.push(cur); }
+
+    cur.days[day.key] = m[2].split(",").map(function (s) { return s.trim(); })
+                            .map(function (s) { return (s === "-" || s === "–") ? "" : s; });
+  });
+
+  return kids;
+}
+
+function renderSchedule() {
+  var kids = parseSchedule(CFG.schedule),
+      tabs = $("#schKids"),
+      view = $("#schView");
+
+  // přepínač dětí jen když jich je víc
+  if (kids.length > 1) {
+    if (schKid >= kids.length) schKid = 0;
+    tabs.hidden = false;
+    tabs.innerHTML = kids.map(function (k, i) {
+      return '<button class="seg-btn' + (i === schKid ? " active" : "") +
+             '" type="button" data-k="' + i + '">' + esc(k.name) + "</button>";
+    }).join("");
+    $$("#schKids button").forEach(function (b) {
+      b.addEventListener("click", function () { schKid = Number(b.dataset.k); renderSchedule(); });
+    });
+  } else {
+    tabs.hidden = true;
+    tabs.innerHTML = "";
+    schKid = 0;
+  }
+
+  var kid = kids[schKid];
+  if (!kid) {
+    view.innerHTML = '<div class="empty">Rozvrh není vyplněný — klepni na <b>Upravit</b>.</div>';
+    return;
+  }
+
+  // nejvyšší počet hodin určí počet řádků
+  var max = 0;
+  SCH_DAYS.forEach(function (d) {
+    var a = kid.days[d.key] || [];
+    if (a.length > max) max = a.length;
+  });
+  if (!max) {
+    view.innerHTML = '<div class="empty">U ' + esc(kid.name) +
+                     ' nejsou žádné dny — zkontroluj zkratky Po Út St Čt Pá.</div>';
+    return;
+  }
+
+  var todayDow = new Date().getDay(),
+      cols = "34px repeat(" + SCH_DAYS.length + ", minmax(0, 1fr))",
+      html = '<div class="sch-grid">';
+
+  html += '<div class="sch-row" style="grid-template-columns:' + cols + '"><div></div>';
+  SCH_DAYS.forEach(function (d) {
+    html += '<div class="sch-h' + (d.dow === todayDow ? " today" : "") + '">' + d.label + "</div>";
+  });
+  html += "</div>";
+
+  for (var i = 0; i < max; i++) {
+    html += '<div class="sch-row" style="grid-template-columns:' + cols + '">' +
+            '<div class="sch-n">' + (i + 1) + "</div>";
+    SCH_DAYS.forEach(function (d) {
+      var s = (kid.days[d.key] || [])[i] || "";
+      html += '<div class="sch-c' + (s ? "" : " empty") +
+              (d.dow === todayDow ? " col-today" : "") + '">' + esc(s || "·") + "</div>";
+    });
+    html += "</div>";
+  }
+  html += "</div>";
+  view.innerHTML = html;
+}
+
+function openSchEdit(on) {
+  $("#schEdit").hidden = !on;
+  $("#schView").hidden = on;
+  $("#schEditBtn").hidden = on;
+  if (on) { $("#fSchedule").value = CFG.schedule || ""; $("#fSchedule").focus(); }
+}
+
+/* ───────────────────────────  poznámky  ───────────────────────────── */
+
+function renderNotes() {
+  var notes = DATA.notes || [], view = $("#notesView");
+
+  $("#notesCount").textContent = notes.length;
+  $("#notesHint").textContent = CFG.api ? "ukládá se u Googlu" : "potřebuje datové API";
+
+  if (!notes.length) {
+    view.innerHTML = '<div class="empty">' +
+      (CFG.api ? "Žádné poznámky. Napiš první nahoře."
+               : "Poznámky se ukládají přes Apps Script — vyplň API v Nastavení.") +
+      "</div>";
+    return;
+  }
+
+  view.innerHTML = notes.map(function (n) {
+    var d = n.at ? new Date(n.at) : null,
+        when = d ? cap(fmtDayShort.format(d)) + " " + hhmm(d) : "";
+    return '<div class="note-item">' +
+             '<div class="note-body"><div class="txt">' + esc(n.text) + "</div>" +
+             (when ? '<div class="when">' + esc(when) + "</div>" : "") + "</div>" +
+             '<button class="note-del" type="button" data-id="' + esc(n.id) +
+             '" aria-label="Smazat poznámku">✕</button>' +
+           "</div>";
+  }).join("");
+
+  $$("#notesView .note-del").forEach(function (b) {
+    b.addEventListener("click", function () { delNote(b.dataset.id); });
+  });
+}
+
+function addNote() {
+  var input = $("#noteInput"), text = input.value.trim();
+  if (!text) return;
+  if (!CFG.api) { toast("Poznámky potřebují datové API."); go("settings"); return; }
+
+  input.disabled = true;
+  apiCall({ action: "addNote", text: text }).then(function () {
+    input.value = "";
+    return refreshData();
+  }).catch(function (err) {
+    toast(humanError(err));
+  }).then(function () {
+    input.disabled = false;
+    input.focus();
+  });
+}
+
+function delNote(id) {
+  confirmBox("Smazat poznámku?", "Zmizí ze všech zařízení, která tabuli zobrazují.", function () {
+    apiCall({ action: "delNote", id: id })
+      .then(refreshData)
+      .catch(function (err) { toast(humanError(err)); });
+  });
+}
+
 /* ─────────────────────────────  adresa  ───────────────────────────── */
 
 function renderAddress() {
-  var a = (CFG.address || "").trim(), el = $("#addrText");
-  el.textContent = a || "Klepni a doplň v nastavení";
-  el.classList.toggle("ghost", !a);
+  var a = (CFG.address || "").trim(), b = $("#addrBtn");
+  b.classList.toggle("empty", !a);
+  b.title = a ? "Naše adresa — klepnutím zvětšit" : "Doplnit naši adresu";
 }
 
 function openAddrBox() {
@@ -1944,6 +2243,7 @@ function renderAll() {
   renderCalendarPage();
   renderWaste();
   renderLists();
+  renderNotes();
 }
 
 function setStatus() {
@@ -1963,6 +2263,7 @@ function refreshData() {
     DATA = {
       events: d.events || [],
       lists: d.lists || { tasks: [], shopping: [] },
+      notes: d.notes || [],
       note: d.note || "",
       syncedAt: d.syncedAt || null,
       demo: !!d.demo
@@ -2004,6 +2305,8 @@ function go(page) {
   $$(".page").forEach(function (p) { p.classList.toggle("active", p.dataset.page === page); });
   $$(".nav-btn[data-go]").forEach(function (b) { b.classList.toggle("active", b.dataset.go === page); });
   if (page === "settings") fillSettings();
+  if (page === "schedule") { openSchEdit(false); renderSchedule(); }
+  if (page === "notes") { renderNotes(); setTimeout(function () { $("#noteInput").focus(); }, 80); }
 }
 
 /* ────────────────────────────  nastavení  ─────────────────────────── */
@@ -2105,10 +2408,23 @@ function bind() {
     });
   });
 
-  $("#addrCard").addEventListener("click", openAddrBox);
-  $("#addrCard").addEventListener("keydown", function (e) {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAddrBox(); }
+  $("#schEditBtn").addEventListener("click", function () { openSchEdit(true); });
+  $("#schCancel").addEventListener("click", function () { openSchEdit(false); });
+  $("#schSave").addEventListener("click", function () {
+    CFG.schedule = $("#fSchedule").value.slice(0, 4000);
+    save();
+    schKid = 0;
+    openSchEdit(false);
+    renderSchedule();
+    toast("Rozvrh uložen.");
   });
+
+  $("#noteAdd").addEventListener("click", addNote);
+  $("#noteInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); addNote(); }
+  });
+
+  $("#addrBtn").addEventListener("click", openAddrBox);
   $("#addrClose").addEventListener("click", function () { $("#addrBox").classList.remove("show"); });
   $("#addrEdit").addEventListener("click", function () {
     $("#addrBox").classList.remove("show");

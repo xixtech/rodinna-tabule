@@ -66,7 +66,13 @@ var CONFIG = {
    *  tomu, aby chybná Zkratka poslala celý román. */
   MAX_ITEM_LEN: 120,
   MAX_ITEMS: 60,
-  MAX_NOTE_LEN: 400
+  MAX_NOTE_LEN: 400,
+
+  /** Volné poznámky psané přímo na tabuli. Strop je tu proto, že Script
+   *  Properties má limit 9 kB na jednu vlastnost — při překročení by zápis
+   *  začal padat, což je horší než odmítnout 41. poznámku. */
+  MAX_NOTES: 40,
+  MAX_NOTE_TEXT: 500
 };
 
 var PROPS = PropertiesService.getScriptProperties();
@@ -84,6 +90,8 @@ function doGet(e) {
     // tělem poslal preflight OPTIONS, který Apps Script neumí obsloužit, a
     // celé by to spadlo na CORS. GET projde vždy, včetně JSONP fallbacku.
     if (p.action === 'addEvent') return out(addEvent(p), cb);
+    if (p.action === 'addNote')  return out(addNote(p), cb);
+    if (p.action === 'delNote')  return out(delNote(p), cb);
 
     var days = parseInt(p.days, 10);
     if (!days || days < 1) days = CONFIG.DEFAULT_DAYS;
@@ -94,6 +102,7 @@ function doGet(e) {
       days: days,
       events: collectEvents(days),
       lists: readLists(),
+      notes: readNotes(),
       note: PROPS.getProperty('note') || '',
       syncedAt: PROPS.getProperty('syncedAt') || null
     }, cb);
@@ -205,6 +214,51 @@ function readList(key) {
   } catch (err) {
     return [];
   }
+}
+
+/* ═══════════════════════  volné poznámky  ═══════════════════════════ */
+
+/**
+ * Poznámky psané přímo na tabuli. Drží se u Googlu, ne v localStorage iPadu —
+ * vyčištěné úložiště prohlížeče by jinak smazalo i to, co si někdo připsal.
+ */
+function readNotes() {
+  try {
+    var n = JSON.parse(PROPS.getProperty('notes') || '[]');
+    return Array.isArray(n) ? n : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function writeNotes(notes) {
+  PROPS.setProperty('notes', JSON.stringify(notes.slice(0, CONFIG.MAX_NOTES)));
+}
+
+function addNote(p) {
+  var text = String(p.text || '').trim().slice(0, CONFIG.MAX_NOTE_TEXT);
+  if (!text) return { error: 'prázdná poznámka' };
+
+  var notes = readNotes();
+  if (notes.length >= CONFIG.MAX_NOTES) {
+    return { error: 'poznámek je maximum (' + CONFIG.MAX_NOTES + '), něco smaž' };
+  }
+
+  notes.unshift({ id: Utilities.getUuid(), text: text, at: new Date().toISOString() });
+  writeNotes(notes);
+  return { ok: true, count: notes.length };
+}
+
+function delNote(p) {
+  var id = String(p.id || '');
+  if (!id) return { error: 'chybí id' };
+
+  var notes = readNotes(), before = notes.length;
+  notes = notes.filter(function (n) { return n.id !== id; });
+  if (notes.length === before) return { error: 'poznámka nenalezena' };
+
+  writeNotes(notes);
+  return { ok: true, count: notes.length };
 }
 
 /* ═════════════════════  zakládání události  ═════════════════════════ */
@@ -371,9 +425,17 @@ function testPost() {
   Logger.log(JSON.stringify(readLists(), null, 2));
 }
 
+/** Kontrola poznámek bez volání přes web. */
+function testNotes() {
+  Logger.log(JSON.stringify(addNote({ text: 'Zkušební poznámka' })));
+  var n = readNotes();
+  Logger.log(JSON.stringify(n, null, 2));
+  if (n.length) Logger.log(JSON.stringify(delNote({ id: n[0].id })));
+}
+
 /** Kdyby bylo potřeba začít od čistého stolu. */
 function smazSeznamy() {
-  ['list.tasks', 'list.shopping', 'note', 'syncedAt'].forEach(function (k) {
+  ['list.tasks', 'list.shopping', 'note', 'notes', 'syncedAt'].forEach(function (k) {
     PROPS.deleteProperty(k);
   });
   Logger.log('Smazáno.');

@@ -318,6 +318,45 @@ přepínač mezi oběma. Obě lokality se načtou jedním dotazem (Open-Meteo be
 souřadnice oddělené čárkou a vrací pole), takže to nic nezdrží ani nezdvojuje
 počet dotazů.
 
+## Školní rozvrh
+
+Záložka **Rozvrh** ukazuje mřížku dnů a hodin, dnešní sloupec zvýrazněný.
+Zadává se **textem, ne klikáním do mřížky** — mřížkový editor je na nástěnném
+tabletu utrpení a rozvrh se mění dvakrát do roka:
+
+```
+# Adam
+Po: Čj, M, Aj, Tv, Vv
+Út: M, Čj, -, Hv
+St: Aj, M, Čj
+
+# Eva
+Po: M, Čj
+Pá: Tv, Vv, M
+```
+
+Řádek s `#` zakládá dítě — když jsou dvě a víc, objeví se nad rozvrhem
+přepínač. Prázdnou hodinu napiš jako `-`. Zkratky dnů jsou tolerantní:
+`Po`, `po`, `Út`, `Ut`, `úterý`, `Utery`, `ctvrtek` i `patek` fungují,
+protože na klávesnici nikdo háčkovat nebude a mlčky přeskočený den by byl
+horší než tolerantní parser.
+
+Rozvrh se ukládá do localStorage iPadu, ne k Googlu — je to statická věc,
+která nepotřebuje synchronizaci. Zálohu si udělej zkopírováním textu.
+
+## Poznámky
+
+Záložka **Poznámky** je volná nástěnka: napíšeš řádek, klepneš na `+`.
+Ukládají se **u Googlu** ve Script Properties, ne v prohlížeči — vyčištěné
+úložiště Safari by jinak smazalo i to, co si někdo připsal. Objeví se tedy
+na každém zařízení, které tabuli zobrazuje.
+
+Strop je 40 poznámek po 500 znacích. Je tam proto, že jedna vlastnost Script
+Properties má limit 9 kB a při překročení by zápis začal padat — což je horší
+než odmítnout 41. poznámku.
+
+Bez nastaveného API poznámky nefungují a záložka to řekne.
+
 ## Ikona na plochu
 
 `apple-touch-icon.png` je to, co uvidíš na ploše iPadu po *Přidat na plochu*.
