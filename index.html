@@ -316,6 +316,7 @@
   .place-tabs button.active {
     background: rgba(103, 212, 255, .16); border-color: rgba(103, 212, 255, .38); color: var(--blue);
   }
+  .place-tabs button.ghost { background: transparent; border-style: dashed; opacity: .75; }
   .wx-facts b { color: var(--text); font-weight: 640; }
   .wx-hint {
     margin-top: clamp(8px, .9vw, 12px); padding-top: clamp(8px, .9vw, 12px);
@@ -1172,27 +1173,44 @@ function rainHint(h) {
 
 function renderPlaceTabs() {
   var ps = places(), el = $("#wxPlaces");
-  el.hidden = ps.length < 2;
-  if (el.hidden) { el.innerHTML = ""; return; }
+  el.hidden = false;
 
-  el.innerHTML = ps.map(function (p, i) {
-    return '<button type="button" data-i="' + i + '" class="' + (i === wxIndex ? "active" : "") +
-           '">' + esc(p.name) + "</button>";
-  }).join("");
+  if (ps.length < 2) {
+    // S jedním místem není co přepínat, ale skrytá funkce, o které se nedá
+    // dozvědět, je k ničemu — ukážeme aspoň cestu, jak druhé místo přidat.
+    el.innerHTML = '<button type="button" class="ghost" data-add="1">＋ místo</button>';
+  } else {
+    el.innerHTML = ps.map(function (p, i) {
+      return '<button type="button" data-i="' + i + '" class="' + (i === wxIndex ? "active" : "") +
+             '">' + esc(p.name) + "</button>";
+    }).join("");
+  }
 
   $$("#wxPlaces button").forEach(function (b) {
     b.addEventListener("click", function () {
-      wxIndex = Number(b.dataset.i);
-      renderWeather();
+      if (b.dataset.add) {
+        go("settings");
+        setTimeout(function () { $("#fPlace2").focus(); }, 80);
+        return;
+      }
+      var i = Number(b.dataset.i);
+      wxIndex = i;
+      // předpověď pro to místo ještě nemusí být načtená (přidané místo,
+      // výpadek sítě) — dotáhneme ji, ať přepnutí něco doopravdy udělá
+      if (!WX || i >= WX.length) refreshWeather();
+      else renderWeather();
     });
   });
 }
 
 function renderWeather() {
-  renderPlaceTabs();
-
+  // Clamp musí být PŘED vykreslením pilulek, jinak by svítila Praha
+  // a pod ní data z prvního místa. Nastane to vždy, když se druhé místo
+  // přidá, ale předpověď pro něj ještě nedošla.
   var list = WX || [];
   if (wxIndex >= list.length) wxIndex = 0;
+
+  renderPlaceTabs();
 
   var w = list[wxIndex];
   if (!w || !w.current) return;
