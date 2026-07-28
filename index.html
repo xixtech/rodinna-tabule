@@ -399,38 +399,40 @@
   /* ══════════════════ seznamy ══════════════════ */
   .segmented {
     display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px;
-    padding: 3px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
-    margin-bottom: clamp(8px, .9vw, 12px);
+    padding: 2px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+    margin-bottom: clamp(5px, .6vw, 8px);
   }
   .seg-btn {
-    padding: .55em .5em; border: 0; border-radius: 999px; background: transparent;
-    color: var(--muted); font-size: clamp(11px, 1.1vw, 15px); font-weight: 620;
-    min-height: 38px;
+    padding: .45em .5em; border: 0; border-radius: 999px; background: transparent;
+    color: var(--muted); font-size: clamp(10px, 1.05vw, 14px); font-weight: 620;
+    min-height: 32px;
   }
   .seg-btn.active { background: var(--panel-solid); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
   .seg-btn .n { opacity: .6; font-weight: 500; }
 
+  /* Řádky jsou úmyslně těsné — seznam je jen ke čtení, takže nemusí držet
+     44px na prst, a víc řádků na obrazovce je tady cennější. */
   .li {
-    display: flex; align-items: center; gap: clamp(9px, 1vw, 13px);
-    padding: clamp(8px, .9vw, 12px) clamp(9px, 1vw, 13px);
-    margin-bottom: 5px; border-radius: var(--r-md);
+    display: flex; align-items: center; gap: clamp(7px, .8vw, 10px);
+    padding: clamp(4px, .5vw, 7px) clamp(8px, .9vw, 12px);
+    margin-bottom: 3px; border-radius: 13px;
     background: var(--panel-solid); border: 1px solid var(--line);
-    min-height: 46px;
+    min-height: 32px;
   }
   .li-box {
-    width: 1.35em; height: 1.35em; border-radius: 50%; flex: 0 0 auto;
+    width: 1.2em; height: 1.2em; border-radius: 50%; flex: 0 0 auto;
     border: 2px solid var(--muted-2); display: grid; place-items: center;
-    font-size: clamp(12px, 1.2vw, 16px); color: transparent;
+    font-size: clamp(10px, 1.05vw, 14px); color: transparent;
   }
   .li.done .li-box { background: var(--green); border-color: var(--green); color: #06251a; }
-  .li-label { font-size: clamp(12px, 1.25vw, 17px); font-weight: 560; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .li-label { font-size: clamp(11px, 1.1vw, 15px); font-weight: 560; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .li.done .li-label { text-decoration: line-through; color: var(--muted-2); font-weight: 400; }
 
   .src-row {
     display: flex; align-items: center; gap: .6em; flex-wrap: wrap;
-    margin-top: auto; padding-top: clamp(8px, .9vw, 12px);
+    margin-top: auto; padding-top: clamp(5px, .6vw, 8px);
     border-top: 1px solid var(--line);
-    font-size: clamp(10px, .95vw, 13px); color: var(--muted-2);
+    font-size: clamp(9px, .9vw, 12px); color: var(--muted-2);
   }
   .soft-btn {
     display: inline-flex; align-items: center; gap: .45em;
