@@ -216,6 +216,22 @@ automatizace.
 **E7. Ověř na tabuli.** V *Seznamech* se objeví položky a dole čas poslední
 synchronizace.
 
+**E7b. Zkratky na přidávání (nepovinné).** Aby šlo přidávat i z tabule:
+
+1. Zkratky → **+** → název `Tabule nákup`
+2. Jediná akce **Přidat do poznámky** → poznámka `Nákup`, text = *Vstup zkratky*
+3. Na konec přidej stejné **Získat obsah adresy URL** jako v `Tabule sync`
+   (POST na `/exec`), aby se poznámka hned poslala zpět
+4. Totéž jako `Tabule úkol` pro poznámku `Úkoly`
+5. Oba názvy vyplň v *Nastavení* tabule
+
+Pak se v seznamu objeví přidávací pole. Položka je čárkovaná s „posílám…",
+dokud ji Zkratka nepošle zpátky.
+
+> **Odškrtávat z tabule nejde a nepůjde.** Zkratky umí do poznámky jen připsat
+> na konec; přepsat ji neumí a `Create Note` by vyrobilo novou, čímž by se
+> rozbilo sdílení. Odškrtává se v Poznámkách na telefonu.
+
 **E8. Nastav automatické spouštění.** Zkratky → záložka **Automatizace** →
 **+** → *Denní čas* → čas → *Spustit okamžitě* → akce **Spustit zkratku** →
 `Tabule sync`. Zakládej po jedné pro 7:00, 12:00, 16:00 a 19:00.

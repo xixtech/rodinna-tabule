@@ -426,6 +426,22 @@
   }
   .li.done .li-box { background: var(--green); border-color: var(--green); color: #06251a; }
   .li-label { font-size: clamp(11px, 1.1vw, 15px); font-weight: 560; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* položka poslaná Zkratkou, kterou zpátky z Poznámek ještě nemáme */
+  .li.pending { border-style: dashed; opacity: .7; }
+  .li-note { margin-left: auto; font-size: clamp(8px, .85vw, 11px); color: var(--blue); white-space: nowrap; }
+
+  .add-row { display: flex; gap: 5px; margin-bottom: clamp(5px, .6vw, 8px); }
+  .add-row input {
+    flex: 1; min-width: 0; padding: .45em .7em; min-height: 34px;
+    border-radius: 12px; background: var(--panel-solid);
+    border: 1px solid var(--line); font-size: clamp(11px, 1.1vw, 15px);
+  }
+  .add-btn {
+    flex: 0 0 auto; width: 40px; min-height: 34px; border-radius: 12px;
+    display: grid; place-items: center; font-size: clamp(13px, 1.2vw, 16px);
+    background: rgba(103, 212, 255, .16);
+    border: 1px solid rgba(103, 212, 255, .34); color: var(--blue);
+  }
   .li.done .li-label { text-decoration: line-through; color: var(--muted-2); font-weight: 400; }
 
   .src-row {
@@ -772,6 +788,12 @@
               <button class="seg-btn active" type="button" data-list="shopping" role="tab">Nákup <span class="n" id="nShopping"></span></button>
               <button class="seg-btn" type="button" data-list="tasks" role="tab">Úkoly <span class="n" id="nTasks"></span></button>
             </div>
+            <div class="add-row" id="addItemRow" hidden>
+              <input id="addItemInput" type="text" maxlength="80" autocomplete="off" placeholder="Přidat na nákup…">
+              <button class="add-btn" id="addItemBtn" type="button" aria-label="Přidat do Apple Poznámek">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
             <div class="scroll" id="listView"></div>
             <div class="src-row" id="listSrcRow">
               <span id="syncLabel">Zdroj: Apple Poznámky</span>
@@ -922,10 +944,22 @@
         <div class="agenda-cols">
           <div>
             <div class="card-head"><div class="card-title">🛒 Nákup</div><span class="count-pill" id="cShopping">0</span></div>
+            <div class="add-row" id="addShoppingRow" hidden>
+              <input id="addShoppingInput" type="text" maxlength="80" autocomplete="off" placeholder="Přidat na nákup…">
+              <button class="add-btn" id="addShoppingBtn" type="button" aria-label="Přidat na nákup">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
             <div id="bigShopping"></div>
           </div>
           <div>
             <div class="card-head"><div class="card-title">✅ Úkoly</div><span class="count-pill" id="cTasks">0</span></div>
+            <div class="add-row" id="addTasksRow" hidden>
+              <input id="addTasksInput" type="text" maxlength="80" autocomplete="off" placeholder="Přidat úkol…">
+              <button class="add-btn" id="addTasksBtn" type="button" aria-label="Přidat úkol">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
             <div id="bigTasks"></div>
           </div>
         </div>
@@ -1001,6 +1035,15 @@
               <label for="fShortcut">Název iOS Zkratky</label>
               <input id="fShortcut" type="text" placeholder="Tabule sync">
               <div class="field-help">Tlačítko „Synchronizovat“ spustí tuhle Zkratku na iPadu. Zkratka přečte poznámky a pošle je do Apps Scriptu — postup v README.</div>
+            </div>
+            <div class="field">
+              <label for="fAddShopping">Zkratka pro přidání na nákup</label>
+              <input id="fAddShopping" type="text" placeholder="Tabule nákup">
+            </div>
+            <div class="field">
+              <label for="fAddTasks">Zkratka pro přidání úkolu</label>
+              <input id="fAddTasks" type="text" placeholder="Tabule úkol">
+              <div class="field-help">Zkratka s jedinou akcí <b>Přidat do poznámky</b> na příslušnou poznámku. Tabule jí předá text a v seznamu se objeví čárkovaná položka, dokud ji Zkratka nepošle zpátky. <b>Odškrtávat takhle nejde</b> — Zkratky umí do poznámky jen připsat na konec, ne přepsat ji. Odškrtává se v Poznámkách.</div>
             </div>
           </section>
 
@@ -1187,6 +1230,8 @@ var DEFAULTS = {
   schedule: "",              // školní rozvrh textem, viz parseSchedule()
   pidStop: "",               // jen popisek zastávky; kód stanoviště je v Apps Scriptu
   shortcut: "Tabule sync",
+  addShopping: "",           // Zkratka, která připíše řádek do poznámky Nákup
+  addTasks: "",              // totéž pro Úkoly
   taphome: "",
   theme: "auto",
   hidePast: false
@@ -1907,11 +1952,68 @@ function renderWaste() {
 
 /* ─────────────────────────────  seznamy  ──────────────────────────── */
 
+/* Položky, které jsme právě poslali do Apple Poznámek přes Zkratku. Web nemá
+   jak zjistit, jestli Zkratka doopravdy proběhla, takže je držíme zobrazené
+   ztlumeně, dokud se neobjeví ve skutečných datech — nebo dokud nevyprší. */
+var pending = { shopping: [], tasks: [] };
+var PENDING_MS = 10 * 60 * 1000;
+
+function pendingFor(key, real) {
+  var now = Date.now(),
+      have = {};
+  (real || []).forEach(function (i) { have[foldDia(i.label)] = 1; });
+
+  pending[key] = (pending[key] || []).filter(function (p) {
+    return now - p.at < PENDING_MS && !have[foldDia(p.label)];
+  });
+  return pending[key];
+}
+
 function liHtml(item) {
-  return '<div class="li' + (item.done ? " done" : "") + '">' +
+  return '<div class="li' + (item.done ? " done" : "") +
+           (item.pending ? " pending" : "") + '">' +
            '<div class="li-box">✓</div>' +
            '<div class="li-label">' + esc(item.label) + "</div>" +
+           (item.pending ? '<div class="li-note">posílám…</div>' : "") +
          "</div>";
+}
+
+/** Který seznam právě přidáváme a jakou Zkratkou. */
+function addShortcutFor(key) {
+  return ((key === "shopping" ? CFG.addShopping : CFG.addTasks) || "").trim();
+}
+
+/**
+ * Přidá položku do Apple poznámky. Web do iCloud poznámky zapsat nemůže,
+ * ale iOS Zkratka ano — akcí „Přidat do poznámky“. Text jí předáme adresou
+ * shortcuts://run-shortcut?input=text&text=…, což je dokumentované Applem.
+ *
+ * Odškrtnout takhle nejde: Zkratky umí jen připsat na konec, přepsat obsah
+ * existující poznámky neumí a „Create Note“ by vyrobilo novou, čímž by se
+ * rozbilo sdílení. Odškrtává se proto v Poznámkách.
+ */
+function addToList(key, input) {
+  var text = input.value.trim(),
+      name = addShortcutFor(key);
+
+  if (!text) return;
+  if (!name) {
+    toast("Nejdřív vyplň v Nastavení název Zkratky pro přidávání.");
+    go("settings");
+    return;
+  }
+
+  pending[key].push({ label: text, at: Date.now() });
+  input.value = "";
+  renderLists();
+
+  location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(name) +
+                  "&input=text&text=" + encodeURIComponent(text);
+
+  // Zkratka na konci sama pošle poznámku zpět do Apps Scriptu, tak si ji
+  // za chvíli vyzvedneme a ztlumená položka se překlopí na skutečnou.
+  setTimeout(refreshData, 6000);
+  setTimeout(refreshData, 15000);
 }
 
 function renderLists() {
@@ -1924,6 +2026,15 @@ function renderLists() {
   $("#cShopping").textContent = open(shopping);
   $("#cTasks").textContent = open(tasks);
 
+  // ke skutečným datům přilepíme položky, které čekají na potvrzení ze Zkratky
+  function withPending(arr, key) {
+    return arr.concat(pendingFor(key, arr).map(function (p) {
+      return { label: p.label, done: false, pending: true };
+    }));
+  }
+  shopping = withPending(shopping, "shopping");
+  tasks = withPending(tasks, "tasks");
+
   function body(arr) {
     if (!arr.length) return '<div class="empty">Prázdné — přidej v Apple Poznámkách</div>';
     // neodškrtnuté nahoru, ať je z odstupu vidět, co ještě zbývá
@@ -1934,6 +2045,13 @@ function renderLists() {
   $("#listView").innerHTML = body(activeList === "shopping" ? shopping : tasks);
   $("#bigShopping").innerHTML = body(shopping);
   $("#bigTasks").innerHTML = body(tasks);
+
+  // přidávací pole má smysl jen když je nastavená Zkratka pro daný seznam
+  $("#addItemRow").hidden = !addShortcutFor(activeList);
+  $("#addItemInput").placeholder = activeList === "shopping"
+    ? "Přidat na nákup…" : "Přidat úkol…";
+  $("#addShoppingRow").hidden = !addShortcutFor("shopping");
+  $("#addTasksRow").hidden = !addShortcutFor("tasks");
 
   var label = DATA.syncedAt
     ? "Z Apple Poznámek · " + hhmm(new Date(DATA.syncedAt))
@@ -2529,6 +2647,8 @@ function fillSettings() {
   $("#fAddress").value = CFG.address || "";
   $("#fPidStop").value = CFG.pidStop || "";
   $("#fShortcut").value = CFG.shortcut;
+  $("#fAddShopping").value = CFG.addShopping || "";
+  $("#fAddTasks").value = CFG.addTasks || "";
   $("#fTapHome").value = CFG.taphome;
   $$("#themeSeg button").forEach(function (b) {
     b.classList.toggle("active", b.dataset.theme === CFG.theme);
@@ -2549,6 +2669,8 @@ function saveSettings() {
   CFG.address = $("#fAddress").value.trim().slice(0, 160);
   CFG.pidStop = $("#fPidStop").value.trim();
   CFG.shortcut = $("#fShortcut").value.trim();
+  CFG.addShopping = $("#fAddShopping").value.trim();
+  CFG.addTasks = $("#fAddTasks").value.trim();
   CFG.taphome = $("#fTapHome").value.trim();
 
   if (!CFG.place2) { CFG.lat2 = null; CFG.lon2 = null; }
@@ -2660,6 +2782,19 @@ function bind() {
   $("#refreshBtn").addEventListener("click", function () {
     toast("Obnovuji…");
     refreshData(); refreshWeather();
+  });
+
+  // přidávání do Apple Poznámek přes Zkratku — na přehledu i na stránce Seznamy
+  [["#addItemBtn", "#addItemInput", null],
+   ["#addShoppingBtn", "#addShoppingInput", "shopping"],
+   ["#addTasksBtn", "#addTasksInput", "tasks"]
+  ].forEach(function (t) {
+    var btn = $(t[0]), input = $(t[1]), fixed = t[2];
+    function fire() { addToList(fixed || activeList, input); }
+    btn.addEventListener("click", fire);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); fire(); }
+    });
   });
 
   $("#syncBtn").addEventListener("click", runShortcut);

@@ -248,6 +248,35 @@ Kdyby POST s JSON tělem neprošel (Apps Script občas při přesměrování zah
 tělo), přepni *Tělo požadavku* na **Formulář** se stejnými poli. Backend přijímá
 oba formáty.
 
+### Zpětný směr: přidávání z tabule do Poznámek
+
+Web do iCloud poznámky zapsat nemůže, ale **iOS Zkratka ano**. Tabule jí předá
+text adresou, kterou Apple dokumentuje:
+
+```
+shortcuts://run-shortcut?name=Tabule%20nákup&input=text&text=mléko
+```
+
+Zkratka `Tabule nákup` má **jedinou akci**: *Přidat do poznámky* → poznámka
+`Nákup`, text = vstup Zkratky. Na konec jí přidej stejné *Získat obsah adresy
+URL*, jaké má `Tabule sync` — tím poznámku hned pošle zpátky a tabule se
+srovná sama. Totéž pro `Tabule úkol`. Názvy obou vyplň v *Nastavení* tabule.
+
+Než se položka vrátí z Poznámek, drží ji tabule zobrazenou **čárkovaně
+s „posílám…"**. Web nemá jak zjistit, že Zkratka doopravdy proběhla, takže
+položka po deseti minutách bez potvrzení zmizí — to je pravda, ne chyba.
+Porovnává se bez ohledu na diakritiku a velká písmena, takže „kefír" poslaný
+z tabule a „Kefír" vrácený z Poznámek se nezdvojí.
+
+### Odškrtávat z tabule nejde
+
+A nepůjde. Zkratky umí do poznámky **jen připsat na konec** — přepsat obsah
+existující poznámky neumožňují a `Create Note` by vyrobilo **novou** poznámku,
+čímž by se rozbilo sdílení s manželkou.
+
+Prakticky to ale nevadí: přidáváš v kuchyni u tabule, odškrtáváš v krámě
+na telefonu, kde Poznámky máš. Ta polovina, která funguje, je ta potřebná.
+
 ### Spouštění
 
 - **Ručně**: tlačítko *Synchronizovat* v tabuli — spustí Zkratku na iPadu
