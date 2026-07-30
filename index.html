@@ -502,6 +502,37 @@
   .sch-c.empty { background: transparent; border-style: dashed; color: var(--muted-2); }
   .sch-col-today .sch-c { border-color: rgba(103, 212, 255, .3); }
 
+  /* ══════════════════ nízký tarif ══════════════════ */
+  .nt-chip { cursor: pointer; }
+  .nt-chip.is-nt { color: var(--green); border-color: rgba(123, 224, 168, .34); background: rgba(123, 224, 168, .12); }
+  .nt-chip.is-nt .chip-dot { background: var(--green); }
+  .nt-chip.is-vt { color: var(--muted); border-color: var(--line); background: var(--panel-2); }
+  .nt-chip.is-vt .chip-dot { background: var(--muted-2); }
+
+  .nt-row {
+    display: grid; grid-template-columns: clamp(34px, 3.4vw, 46px) 1fr auto;
+    align-items: center; gap: clamp(8px, 1vw, 13px);
+    padding: clamp(5px, .7vw, 9px) clamp(9px, 1vw, 14px);
+    margin-bottom: 4px; border-radius: 13px;
+    background: var(--panel-solid); border: 1px solid var(--line);
+  }
+  .nt-row.today { border-color: rgba(103, 212, 255, .34); }
+  .nt-day {
+    font-size: clamp(10px, 1.05vw, 14px); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  }
+  .nt-row.today .nt-day { color: var(--blue); }
+  .nt-wins { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+  .nt-win {
+    padding: .2em .55em; border-radius: 8px;
+    background: rgba(123, 224, 168, .12); border: 1px solid rgba(123, 224, 168, .24);
+    font-size: clamp(10px, 1.05vw, 14px); font-weight: 600; color: var(--green);
+    white-space: nowrap;
+  }
+  .nt-win.live { background: var(--green); border-color: var(--green); color: #06251a; }
+  .nt-win.off { background: var(--panel-2); border-color: var(--line); color: var(--muted-2); font-weight: 400; }
+  .nt-sum { font-size: clamp(9px, .95vw, 13px); color: var(--muted-2); white-space: nowrap; }
+
   /* ══════════════════ odjezdy PID ══════════════════ */
   .dep {
     display: grid; grid-template-columns: auto 1fr auto; align-items: center;
@@ -698,6 +729,7 @@
     <button class="icon-btn addr-btn" id="addrBtn" type="button" title="Naše adresa" aria-label="Naše adresa">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
     </button>
+    <button class="chip nt-chip" id="ntChip" type="button" hidden></button>
 
     <div class="header-right">
       <span class="chip warn" id="statusChip" hidden>
@@ -873,6 +905,48 @@
       </article>
     </section>
 
+    <!-- ── Nízký tarif ── -->
+    <section class="page" data-page="nt">
+      <article class="full-card glass">
+        <div class="page-title-row">
+          <div class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z"/></svg>
+            Nízký tarif
+          </div>
+          <span class="chip" id="ntSummary"></span>
+          <div class="page-actions">
+            <div class="segmented" id="ntPovely" style="margin:0;min-width:200px" hidden></div>
+            <button class="soft-btn" id="ntEditBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              Upravit
+            </button>
+          </div>
+        </div>
+
+        <div id="ntView" class="scroll"></div>
+
+        <div id="ntEdit" hidden style="display:flex;flex-direction:column;min-height:0;flex:1">
+          <div class="field" style="flex:1;display:flex;flex-direction:column;min-height:0">
+            <label for="fNt">Časy spínání textem</label>
+            <textarea id="fNt" style="flex:1;min-height:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace" spellcheck="false"></textarea>
+            <div class="field-help">
+              Povel uveď řádkem s <code>#</code>, pak dny a okna NT.
+              Například:
+              <code style="display:block;margin-top:6px;line-height:1.7">
+              # a1b2dp01<br>Po-Pá: 02:00-06:00, 12:30-14:30<br>So,Ne: 00:00-08:00
+              </code>
+              Text vyrobí <code>python3 tools/nt-z-xlsx.py export.xlsx</code>
+              z exportu od distributora. Ukládá se jen do tohoto iPadu.
+            </div>
+          </div>
+          <div class="page-actions" style="margin:0;justify-content:flex-end">
+            <button class="soft-btn" id="ntCancel" type="button">Zrušit</button>
+            <button class="primary-btn" id="ntSave" type="button">Uložit časy</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <!-- ── Odjezdy PID ── -->
     <section class="page" data-page="pid">
       <article class="full-card glass">
@@ -1027,6 +1101,11 @@
           <section class="sect">
             <h3>Seznamy z Apple Poznámek</h3>
             <div class="field">
+              <label for="fNtMain">Který povel NT hlásí hlavička</label>
+              <input id="fNtMain" type="number" min="1" max="9" step="1">
+              <div class="field-help">Když máš víc povelů, tohle je pořadí toho, který se ukazuje v hlavičce jako NT/VT — obvykle 1. Samotné časy se vkládají na záložce <b>Tarif</b>.</div>
+            </div>
+            <div class="field">
               <label for="fPidStop">Popisek zastávky</label>
               <input id="fPidStop" type="text" maxlength="60" placeholder="např. Národní třída">
               <div class="field-help">Jen text nad odjezdy. Skutečné stanoviště se nastavuje v Apps Scriptu v <code>CONFIG.PID</code>, protože tam zůstává i klíč ke Golemio. Kód stanoviště najdeš skriptem <code>tools/najdi-zastavku.py</code>.</div>
@@ -1101,6 +1180,10 @@
     <button class="nav-btn" type="button" data-go="schedule">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13"/><path d="M4 19h16M8 8h8M8 12h8M8 16h5"/></svg>
       <span>Rozvrh</span>
+    </button>
+    <button class="nav-btn" type="button" data-go="nt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z"/></svg>
+      <span>Tarif</span>
     </button>
     <button class="nav-btn" type="button" data-go="pid">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M8 21l1.5-4M16 21l-1.5-4"/></svg>
@@ -1229,6 +1312,8 @@ var DEFAULTS = {
   address: "",
   schedule: "",              // školní rozvrh textem, viz parseSchedule()
   pidStop: "",               // jen popisek zastávky; kód stanoviště je v Apps Scriptu
+  nt: "",                    // časy spínání NT textem, viz parseNt()
+  ntMain: 0,                 // který povel řídí ukazatel v hlavičce
   shortcut: "Tabule sync",
   addShopping: "",           // Zkratka, která připíše řádek do poznámky Nákup
   addTasks: "",              // totéž pro Úkoly
@@ -2072,6 +2157,232 @@ function runShortcut() {
   setTimeout(refreshData, 6000);
 }
 
+/* ══════════════════════  nízký tarif (NT/VT)  ═══════════════════════ */
+
+var NT_DAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+var ntMain = 0;   // zobrazený povel na záložce
+
+/** Index dne v týdnu 0=Po … 6=Ne (JS má 0=Ne, což se tady nehodí). */
+function dowMon(d) { return (d.getDay() + 6) % 7; }
+
+function ntDayFor(token) {
+  var t = foldDia(token).replace(/\.$/, "");
+  if (!t) return -1;
+  for (var i = 0; i < NT_DAYS.length; i++) {
+    var f = foldDia(NT_DAYS[i]);
+    if (t === f || t.indexOf(f) === 0) return i;
+  }
+  return -1;
+}
+
+/**
+ * Rozparsuje text časů spínání. Formát dělá `tools/nt-z-xlsx.py`:
+ *
+ *   # a1b2dp01
+ *   Po-Pá: 02:00-06:00, 12:30-14:30
+ *   So,Ne: 00:00-08:00
+ *
+ * Vrací [{name, days: {0..6: [[odMin, doMin], …]}}]. `24:00` je 1440.
+ */
+function parseNt(text) {
+  var out = [], cur = null;
+
+  String(text || "").split(/\r?\n/).forEach(function (raw) {
+    var line = raw.trim();
+    if (!line) return;
+
+    if (line.charAt(0) === "#") {
+      cur = { name: line.slice(1).trim() || "NT", days: {} };
+      out.push(cur);
+      return;
+    }
+
+    var m = line.match(/^([^:]+):\s*(.*)$/);
+    if (!m) return;
+    if (!cur) { cur = { name: "NT", days: {} }; out.push(cur); }
+
+    // dny: „Po-Pá“, „So,Ne“, „Po“
+    var dny = [];
+    m[1].split(",").forEach(function (part) {
+      var r = part.split("-");
+      if (r.length === 2) {
+        var a = ntDayFor(r[0]), b = ntDayFor(r[1]);
+        if (a >= 0 && b >= 0) for (var i = a; i <= b; i++) dny.push(i);
+      } else {
+        var d = ntDayFor(part);
+        if (d >= 0) dny.push(d);
+      }
+    });
+    if (!dny.length) return;
+
+    var okna = [];
+    m[2].split(",").forEach(function (w) {
+      var t = w.trim().match(/^(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})$/);
+      if (!t) return;
+      var od = (+t[1]) * 60 + (+t[2]), po = (+t[3]) * 60 + (+t[4]);
+      if (po > od) okna.push([od, po]);
+    });
+
+    dny.forEach(function (d) { cur.days[d] = okna.slice(); });
+  });
+
+  return out;
+}
+
+/**
+ * Stav tarifu právě teď. Intervaly se skládají za včera, dnes a zítra
+ * v minutách od dnešní půlnoci a **slučují se, když se dotýkají** — jinak
+ * by okno 23:10–24:00 následované 00:00–00:16 hlásilo konec o půlnoci,
+ * i když NT plynule pokračuje.
+ */
+function ntState(povel, now) {
+  if (!povel) return null;
+  now = now || new Date();
+
+  var mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60,
+      raw = [];
+
+  [-1, 0, 1].forEach(function (off) {
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off),
+        okna = povel.days[dowMon(d)] || [];
+    okna.forEach(function (w) {
+      raw.push([off * 1440 + w[0], off * 1440 + w[1]]);
+    });
+  });
+
+  raw.sort(function (a, b) { return a[0] - b[0]; });
+
+  var merged = [];
+  raw.forEach(function (w) {
+    var last = merged[merged.length - 1];
+    if (last && w[0] <= last[1]) last[1] = Math.max(last[1], w[1]);
+    else merged.push([w[0], w[1]]);
+  });
+
+  for (var i = 0; i < merged.length; i++) {
+    if (mins >= merged[i][0] && mins < merged[i][1]) {
+      return { nt: true, minutes: merged[i][1] - mins, until: merged[i][1] };
+    }
+    if (mins < merged[i][0]) {
+      return { nt: false, minutes: merged[i][0] - mins, until: merged[i][0] };
+    }
+  }
+  return { nt: false, minutes: null, until: null };
+}
+
+/** 161 → „2:41“, 41 → „41 min“ */
+function ntDur(mins) {
+  if (mins == null) return "";
+  var m = Math.max(0, Math.round(mins));
+  if (m < 60) return m + " min";
+  return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+}
+
+/** Minuty od dnešní půlnoci → čas dne, i když přetečou do zítřka. */
+function ntClock(mins) {
+  var m = ((Math.round(mins) % 1440) + 1440) % 1440;
+  return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+}
+
+/** Konec okna: přesná půlnoc se píše 24:00, jinak by „23:10–0:00“
+ *  vypadalo jako okno nulové délky. */
+function ntEnd(mins) {
+  return Math.round(mins) === 1440 ? "24:00" : ntClock(mins);
+}
+
+function renderNtChip() {
+  var chip = $("#ntChip"),
+      list = parseNt(CFG.nt),
+      povel = list[CFG.ntMain] || list[0];
+
+  if (!povel) { chip.hidden = true; return; }
+
+  var s = ntState(povel);
+  if (!s) { chip.hidden = true; return; }
+
+  chip.hidden = false;
+  chip.className = "chip nt-chip " + (s.nt ? "is-nt" : "is-vt");
+  chip.innerHTML = '<span class="chip-dot"></span>' +
+    (s.nt
+      ? "NT" + (s.minutes != null ? " · ještě " + esc(ntDur(s.minutes)) : "")
+      : "VT" + (s.minutes != null ? " · NT za " + esc(ntDur(s.minutes)) : ""));
+  chip.title = s.until != null
+    ? (s.nt ? "Nízký tarif do " : "Nízký tarif od ") + ntClock(s.until) +
+      " (" + povel.name + ")"
+    : povel.name;
+}
+
+function renderNtPage() {
+  var list = parseNt(CFG.nt),
+      tabs = $("#ntPovely"),
+      view = $("#ntView");
+
+  if (list.length > 1) {
+    if (ntMain >= list.length) ntMain = 0;
+    tabs.hidden = false;
+    tabs.innerHTML = list.map(function (p, i) {
+      return '<button class="seg-btn' + (i === ntMain ? " active" : "") +
+             '" type="button" data-i="' + i + '">' + esc(p.name) + "</button>";
+    }).join("");
+    $$("#ntPovely button").forEach(function (b) {
+      b.addEventListener("click", function () { ntMain = Number(b.dataset.i); renderNtPage(); });
+    });
+  } else {
+    tabs.hidden = true; tabs.innerHTML = ""; ntMain = 0;
+  }
+
+  var povel = list[ntMain];
+  if (!povel) {
+    view.innerHTML = '<div class="empty">Časy spínání nejsou vyplněné — klepni na <b>Upravit</b>. ' +
+                     "Text vyrobí <code>tools/nt-z-xlsx.py</code> z exportu od distributora.</div>";
+    $("#ntSummary").textContent = "";
+    return;
+  }
+
+  var now = new Date(), today = dowMon(now),
+      mins = now.getHours() * 60 + now.getMinutes(),
+      html = "";
+
+  NT_DAYS.forEach(function (label, i) {
+    var okna = povel.days[i] || [],
+        celkem = okna.reduce(function (a, w) { return a + (w[1] - w[0]); }, 0);
+
+    html += '<div class="nt-row' + (i === today ? " today" : "") + '">' +
+              '<div class="nt-day">' + label + "</div>" +
+              '<div class="nt-wins">';
+    if (!okna.length) {
+      html += '<span class="nt-win off">celý den VT</span>';
+    } else {
+      okna.forEach(function (w) {
+        var live = i === today && mins >= w[0] && mins < w[1];
+        html += '<span class="nt-win' + (live ? " live" : "") + '">' +
+                ntClock(w[0]) + "–" + ntEnd(w[1]) + "</span>";
+      });
+    }
+    html += "</div><div class=\"nt-sum\">" + (celkem / 60).toFixed(1).replace(".", ",") +
+            " h</div></div>";
+  });
+
+  view.innerHTML = html;
+
+  var s = ntState(povel), tyden = 0;
+  NT_DAYS.forEach(function (_, i) {
+    (povel.days[i] || []).forEach(function (w) { tyden += w[1] - w[0]; });
+  });
+
+  $("#ntSummary").textContent = (s
+      ? (s.nt ? "Teď NT, ještě " + ntDur(s.minutes) : "Teď VT, NT za " + ntDur(s.minutes)) + " · "
+      : "") +
+    "týdně " + (tyden / 60).toFixed(1).replace(".", ",") + " h NT";
+}
+
+function openNtEdit(on) {
+  $("#ntEdit").hidden = !on;
+  $("#ntView").hidden = on;
+  $("#ntEditBtn").hidden = on;
+  if (on) { $("#fNt").value = CFG.nt || ""; $("#fNt").focus(); }
+}
+
 /* ────────────────────────────  odjezdy PID  ───────────────────────── */
 
 var PID = null;        // poslední odpověď z proxy
@@ -2554,6 +2865,7 @@ function tick() {
 
   applyTheme();
   updateScrollHint();
+  renderNtChip();   // odpočet do přepnutí tarifu tiká po minutách
 
   var k = dayKey(now);
   if (lastDayKey && lastDayKey !== k) refreshData();
@@ -2630,6 +2942,7 @@ function go(page) {
   $$(".nav-btn[data-go]").forEach(function (b) { b.classList.toggle("active", b.dataset.go === page); });
   pidAutoRefresh(page === "pid");
   if (page === "pid") { renderPid(); refreshPid(); }
+  if (page === "nt") { openNtEdit(false); renderNtPage(); }
   if (page === "settings") fillSettings();
   if (page === "schedule") { openSchEdit(false); renderSchedule(); }
   if (page === "notes") { renderNotes(); setTimeout(function () { $("#noteInput").focus(); }, 80); }
@@ -2646,6 +2959,7 @@ function fillSettings() {
   $("#fFamily").value = CFG.family;
   $("#fAddress").value = CFG.address || "";
   $("#fPidStop").value = CFG.pidStop || "";
+  $("#fNtMain").value = String((CFG.ntMain|0) + 1);
   $("#fShortcut").value = CFG.shortcut;
   $("#fAddShopping").value = CFG.addShopping || "";
   $("#fAddTasks").value = CFG.addTasks || "";
@@ -2668,6 +2982,7 @@ function saveSettings() {
   CFG.family = $("#fFamily").value.trim() || DEFAULTS.family;
   CFG.address = $("#fAddress").value.trim().slice(0, 160);
   CFG.pidStop = $("#fPidStop").value.trim();
+  CFG.ntMain = Math.max(0, (parseInt($("#fNtMain").value, 10) || 1) - 1);
   CFG.shortcut = $("#fShortcut").value.trim();
   CFG.addShopping = $("#fAddShopping").value.trim();
   CFG.addTasks = $("#fAddTasks").value.trim();
@@ -2738,6 +3053,20 @@ function bind() {
       $$(".seg-btn[data-list]").forEach(function (x) { x.classList.toggle("active", x === b); });
       renderLists();
     });
+  });
+
+  $("#ntChip").addEventListener("click", function () { go("nt"); });
+  $("#ntEditBtn").addEventListener("click", function () { openNtEdit(true); });
+  $("#ntCancel").addEventListener("click", function () { openNtEdit(false); });
+  $("#ntSave").addEventListener("click", function () {
+    CFG.nt = $("#fNt").value.slice(0, 4000);
+    CFG.ntMain = 0;
+    save();
+    ntMain = 0;
+    openNtEdit(false);
+    renderNtPage();
+    renderNtChip();
+    toast("Časy spínání uloženy.");
   });
 
   $("#schEditBtn").addEventListener("click", function () { openSchEdit(true); });

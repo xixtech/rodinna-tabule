@@ -11,6 +11,8 @@ Google kalendářů, počasí, svozy popelnic a nákupní seznam z Apple Poznám
 index.html              celá tabule, jeden soubor bez závislostí
 apps-script/Code.gs     datové API (kalendáře + seznamy) běžící u Googlu
 tools/gen-svoz.py       generátor .ics z harmonogramu svozu odpadů
+tools/najdi-zastavku.py kód zastávky PID podle jména
+tools/nt-z-xlsx.py      časy spínání NT z exportu distributora
 tools/mkicon.py         generátor ikony na plochu
 apple-touch-icon.png    ikona pro Přidat na plochu
 ```
@@ -411,6 +413,54 @@ Do Zkratky přidej třetí poznámku (třeba `Nástěnka`) a její text pošli v
 | Psát na zdi a hned to vidět | Tabule |
 | Mazat na zdi | Tabule |
 | Aby to viděli všichni v Poznámkách | Z Poznámek |
+
+## Nízký tarif (NT/VT)
+
+V hlavičce přehledu svítí štítek, jestli běží **NT** nebo **VT** a jak dlouho
+ještě — zeleně v nízkém tarifu, šedě ve vysokém. Klepnutím se otevře záložka
+**Tarif** s celým týdnem: okna NT po dnech, dnešní den zvýrazněný, právě
+běžící okno plnou zelenou, a hodiny NT za den i za týden.
+
+### Odkud časy vzít
+
+Distributor (ČEZ, EG.D, PRE) umí vyexportovat časy spínání jako xlsx —
+řádek na den, sloupce po párech „NT Za" a „NT Vy". Převod na text pro tabuli:
+
+```bash
+python3 tools/nt-z-xlsx.py ~/Downloads/Časy_spínání_NT.xlsx
+```
+
+```
+# a1b2dp01
+Po-Pá: 02:00-06:00, 12:30-14:30, 22:00-24:00
+So,Ne: 00:00-08:00, 13:00-17:00, 22:00-24:00
+```
+
+Dny se stejnými časy se slučují do rozsahů, aby šel výsledek zkontrolovat okem.
+Na chybový výstup skript navíc vypíše kolik hodin NT to dělá za týden a za den
+— když ti to nevyjde na tarif, který platíš, něco se opsalo špatně.
+
+Skript čte xlsx bez `openpyxl` (je to zip s XML), takže nic instalovat nemusíš.
+
+Text vlož na záložce **Tarif → Upravit**. Ukládá se do localStorage iPadu, ne
+k Googlu — jsou to tvoje časy spínání a do repozitáře nepatří.
+
+### Přechod přes půlnoc
+
+Okna se **slučují, když se dotýkají**. Bez toho by rozvrh `22:00-24:00`
+následovaný `00:00-08:00` hlásil ve 23:30 „ještě 30 min", i když NT plynule
+pokračuje do rána. Sloučení se dělá napříč včerejškem, dneškem a zítřkem,
+takže i po půlnoci tabule správně ví, že jsi pořád v okně, které začalo večer.
+
+Konec okna v přesnou půlnoc se píše `24:00`, ne `0:00` — jinak by to vypadalo
+jako okno nulové délky.
+
+### Víc povelů
+
+Export obvykle obsahuje víc povelů (různé okruhy — třeba tepelné čerpadlo
+a bojler). Všechny se zobrazí jako přepínač na záložce Tarif. Který z nich
+hlásí štítek v hlavičce, se nastavuje v *Nastavení → Který povel NT hlásí
+hlavička*, obvykle první.
 
 ## Odjezdy PID
 

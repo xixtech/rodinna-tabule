@@ -10,3 +10,5 @@ svoz-odpadu-*.ics
 
 # Zeštíhlená cache seznamu zastávek PID, stahuje si ji tools/najdi-zastavku.py
 tools/.stops-cache.json
+
+# Casy spinani NT se vkladaji v tabuli, do souboru nepatri.
